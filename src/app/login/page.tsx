@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import BackgroundImage from '@/components/BackgroundImage'
 import HeroHeader from '@/components/HeroHeader'
-import SsoSection from '@/components/SsoSection'
 
 type Mode = 'password' | 'otp'
 
@@ -208,9 +207,6 @@ export default function LoginPage() {
             </>
           )}
         </div>
-
-        {/* BOTTOM: SSO identisch platziert wie auf "/" */}
-        <SsoSection />
       </div>
     </main>
   )
