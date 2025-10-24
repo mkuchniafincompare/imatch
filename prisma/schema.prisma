@@ -79,6 +79,13 @@ enum MatchStatus {
   CANCELLED
 }
 
+enum RequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELED
+}
+
 enum UserStatus {
   UNVERIFIED // frisch registriert, E-Mail noch nicht bestätigt
   ACTIVE // E-Mail verifiziert
@@ -106,13 +113,17 @@ model User {
 
   status UserStatus @default(UNVERIFIED)
 
-    // 👇 NEU: Einwilligungen
-  privacyAcceptedAt         DateTime?   // Pflicht beim Registrieren
-  privacyPolicyVersion      String?     // optional, z. B. "v1.0"
-  marketingOptInAt          DateTime?   // optional
+  // 👇 NEU: Einwilligungen
+  privacyAcceptedAt    DateTime? // Pflicht beim Registrieren
+  privacyPolicyVersion String? // optional, z. B. "v1.0"
+  marketingOptInAt     DateTime? // optional
 
   teams    Team[]
   messages Message[]
+
+  savedOffers SavedOffer[]
+
+  requests  OfferRequest[]
 }
 
 model Club {
@@ -123,11 +134,11 @@ model Club {
   zip    String?
 
   // Optionales Vereinslogo
-  logoUrl        String?   // z.B. '/uploads/club-logos/<file>'
-  logoMime       String?   // 'image/png' | 'image/jpeg'
-  logoWidth      Int?
-  logoHeight     Int?
-  logoUpdatedAt  DateTime?
+  logoUrl       String? // z.B. '/uploads/club-logos/<file>'
+  logoMime      String? // 'image/png' | 'image/jpeg'
+  logoWidth     Int?
+  logoHeight    Int?
+  logoUpdatedAt DateTime?
 
   // Meta
   createdAt DateTime @default(now())
@@ -149,14 +160,13 @@ model Venue {
 
   club Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
 
-  @@index([clubId])
-
-  lat    Float?
-  lng    Float?
+  lat       Float?
+  lng       Float?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@unique([clubId, name])
+  @@index([clubId])
 }
 
 model Team {
@@ -181,6 +191,8 @@ model Team {
   matchesAway Match[]     @relation("AwayTeam")
 
   @@index([ageGroup, level])
+
+  requestsMade OfferRequest[] @relation("RequesterTeam")
 }
 
 model GameOffer {
@@ -214,6 +226,10 @@ model GameOffer {
 
   // Altersklassen (ggf. mehrere) als eigene Relation
   ages OfferAge[]
+
+  savedBy SavedOffer[]
+
+  requests OfferRequest[]
 
   @@index([status, dateStart, dateEnd])
 }
@@ -272,4 +288,32 @@ model GeoCache {
   updatedAt DateTime @updatedAt
 
   @@unique([zip, city, street])
+}
+
+model SavedOffer {
+  userId    String
+  offerId   String
+  createdAt DateTime @default(now())
+
+  user  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  offer GameOffer @relation(fields: [offerId], references: [id], onDelete: Cascade)
+
+  @@id([userId, offerId])
+  @@index([offerId])
+}
+
+model OfferRequest {
+  requesterUserId String
+  offerId         String
+  requesterTeamId String?
+  message         String?
+  status          RequestStatus @default(PENDING)
+  createdAt       DateTime      @default(now())
+
+  requesterUser User      @relation(fields: [requesterUserId], references: [id], onDelete: Cascade)
+  offer         GameOffer @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  requesterTeam Team?     @relation(name: "RequesterTeam", fields: [requesterTeamId], references: [id])
+
+  @@id([requesterUserId, offerId])
+  @@index([offerId])
 }

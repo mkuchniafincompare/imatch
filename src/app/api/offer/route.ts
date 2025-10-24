@@ -170,6 +170,30 @@ export async function GET(req: Request) {
     take: 100,
   })
 
+  // -- Saved offers of current user (always include, ignore filters)
+  let savedIds = new Set<string>()
+  let allOffers = offers
+  if (currentUserId) {
+    const savedRows = await prisma.savedOffer.findMany({
+      where: { userId: currentUserId },
+      select: { offerId: true },
+    })
+    savedIds = new Set(savedRows.map(r => r.offerId))
+
+    const existingIds = new Set(offers.map(o => o.id))
+    const missingSaved = Array.from(savedIds).filter(id => !existingIds.has(id))
+    if (missingSaved.length > 0) {
+      const extra = await prisma.gameOffer.findMany({
+        where: { id: { in: missingSaved } },
+        include: { team: { include: { club: true } }, ages: true },
+      })
+      // prepend saved extras, so they appear first before sorting fallback
+      allOffers = [...extra, ...offers]
+    } else {
+      allOffers = offers
+    }
+  }
+
   // Zusatzfilter Zeitspanne & Stärke & Distanz
   function withinTimeSpan(ko?: string|null) {
     if (!timeFrom && !timeTo) return true
@@ -190,9 +214,10 @@ export async function GET(req: Request) {
     return true
   }
 
-  let enriched = offers
-    .filter(o => withinTimeSpan(o.kickoffTime))
-    .filter(o => withinStrengthSpan(o.strength))
+  let enriched = allOffers
+    // Saved offers bypass time/strength filters
+    .filter(o => savedIds.has(o.id) || withinTimeSpan(o.kickoffTime))
+    .filter(o => savedIds.has(o.id) || withinStrengthSpan(o.strength))
     .map(o => {
       let distanceKm: number | null = null
       if (geo) {
@@ -214,10 +239,29 @@ export async function GET(req: Request) {
 
   if (geo && typeof radiusKm === 'number') {
     enriched = enriched
-      // Nur behalten, wenn wir eine Distanz haben UND sie im Radius liegt
-      .filter(o => o.distanceKm != null && o.distanceKm <= radiusKm)
-      .sort((a, b) => (a.distanceKm as number) - (b.distanceKm as number))
+      // Saved offers bypass radius; others must be within radius
+      .filter(o => savedIds.has(o.id) || (o.distanceKm != null && o.distanceKm <= radiusKm))
+      .sort((a, b) => {
+        const aSaved = savedIds.has(a.id) ? 0 : 1
+        const bSaved = savedIds.has(b.id) ? 0 : 1
+        if (aSaved !== bSaved) return aSaved - bSaved
+        // within saved/non-saved groups, sort by distance if available
+        const ad = a.distanceKm ?? Number.POSITIVE_INFINITY
+        const bd = b.distanceKm ?? Number.POSITIVE_INFINITY
+        return ad - bd
+      })
   }
+
+  // Always prefer saved offers first when no radius sorting applied
+  enriched = enriched.sort((a, b) => {
+    const aSaved = savedIds.has(a.id) ? 0 : 1
+    const bSaved = savedIds.has(b.id) ? 0 : 1
+    if (aSaved !== bSaved) return aSaved - bSaved
+    // fallback: by offerDate then dateStart
+    const aKey = (a.offerDate?.valueOf?.() ?? 0) + (a.dateStart?.valueOf?.() ?? 0)
+    const bKey = (b.offerDate?.valueOf?.() ?? 0) + (b.dateStart?.valueOf?.() ?? 0)
+    return aKey - bKey
+  })
 
   // Antwort für MatchCard
   const items = enriched.map(o => {

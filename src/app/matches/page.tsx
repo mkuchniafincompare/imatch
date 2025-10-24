@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import Image from 'next/image'
 import MatchCard from '@/components/MatchCard'
 import BackgroundImage from '@/components/BackgroundImage'
 import FilterChip from '@/components/FilterChip'
@@ -85,6 +86,57 @@ export default function MatchesPage() {
   const [items, setItems] = useState<OfferItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // per-offer UI state
+  const [saved, setSaved] = useState<Set<string>>(new Set())
+  const [requested, setRequested] = useState<Set<string>>(new Set())
+
+  function isSaved(id: string) { return saved.has(id) }
+  function isRequested(id: string) { return requested.has(id) }
+
+  async function toggleSave(offerId: string) {
+    // optimistic
+    const next = new Set(saved)
+    const willSave = !next.has(offerId)
+    if (willSave) next.add(offerId); else next.delete(offerId)
+    setSaved(next)
+    try {
+      const res = await fetch(`/api/saved-offers`, {
+        method: willSave ? 'POST' : 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ offerId }),
+      })
+      if (!res.ok) throw new Error('Server error')
+    } catch {
+      // revert on error
+      const revert = new Set(next)
+      if (willSave) revert.delete(offerId); else revert.add(offerId)
+      setSaved(revert)
+    }
+  }
+
+  async function toggleRequest(offerId: string) {
+    const willRequest = !requested.has(offerId)
+    // optimistic toggle
+    const next = new Set(requested)
+    if (willRequest) next.add(offerId)
+    else next.delete(offerId)
+    setRequested(next)
+    try {
+      const res = await fetch(`/api/requests`, {
+        method: willRequest ? 'POST' : 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ offerId }),
+      })
+      if (!res.ok) throw new Error('Server error')
+    } catch {
+      // revert on error
+      const revert = new Set(next)
+      if (willRequest) revert.delete(offerId)
+      else revert.add(offerId)
+      setRequested(revert)
+    }
+  }
 
   // Quick filter state (Top-Chips)
   const [homeAway, setHomeAway] = useState<HomeAway>(null)
@@ -206,6 +258,39 @@ export default function MatchesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query])
 
+  useEffect(() => {
+    if (!items.length) return
+    const ids = items.map(i => i.id).join(',')
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/saved-offers?ids=${encodeURIComponent(ids)}`, { cache: 'no-store' })
+        const data = await res.json().catch(() => ({}))
+        if (Array.isArray(data?.savedIds)) {
+          setSaved(new Set(data.savedIds))
+        }
+      } catch {
+        // ignore errors
+      }
+    })()
+  }, [items.length])
+
+    // Nachdem items geladen sind: bereits angefragte Offers markieren
+  useEffect(() => {
+    if (!items.length) return
+    const ids = items.map(i => i.id).join(',')
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/requests?ids=${encodeURIComponent(ids)}`, { cache: 'no-store' })
+        const data = await res.json().catch(() => ({}))
+        if (Array.isArray(data?.requestedIds)) {
+          setRequested(new Set(data.requestedIds))
+        }
+      } catch {
+        // Ignorieren – UI bleibt funktionsfähig
+      }
+    })()
+  }, [items.length])
+
   function toggleHomeAway(val: Exclude<HomeAway, null>) {
     setHomeAway((prev) => (prev === val ? null : val))
   }
@@ -283,6 +368,34 @@ export default function MatchesPage() {
           {items.map((it) => (
             <div key={it.id} className="glass-card overflow-hidden">
               <MatchCard {...it} />
+              <div className="px-3 pb-3 pt-2 border-t border-white/15 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => toggleSave(it.id)}
+                  className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition ${
+                    isSaved(it.id)
+                      ? 'bg-white text-black'
+                      : 'bg-white/10 hover:bg-white/20 text-white'
+                  }`}
+                  aria-pressed={isSaved(it.id)}
+                >
+                  <span className="text-base">{isSaved(it.id) ? '★' : '☆'}</span>
+                  <span>{isSaved(it.id) ? 'Gemerkt' : 'Merken'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => toggleRequest(it.id)}
+                  className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
+                    isRequested(it.id)
+                      ? 'bg-red-600/20 text-red-100 border border-red-400 hover:bg-red-600/30'
+                      : 'bg-[#D04D2E] hover:brightness-110 text-white'
+                  }`}
+                >
+                  <span>{isRequested(it.id) ? '↩︎' : '📨'}</span>
+                  <span>{isRequested(it.id) ? 'Anfrage zurückziehen' : 'Anfragen'}</span>
+                </button>
+              </div>
             </div>
           ))}
 
