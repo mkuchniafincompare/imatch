@@ -1,8 +1,16 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getUserIdFromCookie } from '@/lib/auth'
 
 export async function GET() {
+  // SECURITY: Nur Teams des aktuellen Users zurückgeben
+  const userId = await getUserIdFromCookie()
+  if (!userId) {
+    return NextResponse.json({ error: 'Nicht eingeloggt' }, { status: 401 })
+  }
+
   const teams = await prisma.team.findMany({
+    where: { contactUserId: userId },
     include: { club: true },
     orderBy: [{ id: 'asc' }],
     take: 50,
@@ -20,17 +28,9 @@ export async function GET() {
   })
 }
 
-function getUserIdFromReq(req: Request) {
-  const raw = req.headers.get('cookie') || ''
-  const m = raw.match(/(?:^|;\s*)mm_session=([^;]+)/)
-  if (!m) return null
-  const decoded = decodeURIComponent(m[1]) // wichtig: %3A -> :
-  return decoded.startsWith('uid:') ? decoded.slice(4) : null
-}
-
 export async function POST(req: Request) {
   try {
-    const userId = getUserIdFromReq(req)
+    const userId = await getUserIdFromCookie()
     if (!userId) {
       return NextResponse.json({ error: 'Nicht eingeloggt' }, { status: 401 })
     }
