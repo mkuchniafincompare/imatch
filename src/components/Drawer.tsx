@@ -100,7 +100,7 @@ export default function Drawer({
           sizeClass,
           'transition-transform duration-200 ease-out',
           'flex flex-col',
-          OPEN ? translateOpen : translateClosed,
+          OPEN ? translateOpen : `${translateClosed} pointer-events-none`,
           className,
         ].join(' ')}
       >

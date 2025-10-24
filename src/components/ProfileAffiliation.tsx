@@ -346,7 +346,7 @@ export default function ProfileAffiliation() {
       <Drawer 
         open={drawerOpen} 
         onClose={() => setDrawerOpen(false)}
-        widthClass="w-full sm:w-[600px]"
+        widthClass="w-[90%] sm:w-[500px] md:w-[600px]"
       >
         <div className="p-4">
           <h2 className="text-lg font-semibold text-white mb-4">Verein wählen oder anlegen</h2>
