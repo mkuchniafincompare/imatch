@@ -72,6 +72,49 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const currentUserId = getSessionUserId(req)
 
+  // Check if specific IDs are requested
+  const idsParam = searchParams.get('ids')
+  if (idsParam) {
+    const ids = idsParam.split(',').map(s => s.trim()).filter(Boolean)
+    if (ids.length === 0) {
+      return NextResponse.json({ count: 0, items: [] })
+    }
+
+    const offers = await prisma.gameOffer.findMany({
+      where: { id: { in: ids } },
+      include: { team: { include: { club: true } }, ages: true },
+      orderBy: [{ offerDate: 'asc' }, { dateStart: 'asc' }],
+    })
+
+    const items = offers.map(o => {
+      const club = o.team?.club
+      const address = club
+        ? [club.street, club.zip, club.city].filter(Boolean).join(', ')
+        : null
+
+      const ageLabel = o.ages[0]?.ageGroup ?? (o as any).team?.ageGroup ?? null
+      const strengthLabel = o.strength ? (STRENGTH_LABEL[o.strength] ?? o.strength) : null
+
+      return {
+        id: o.id,
+        clubName: club?.name ?? '—',
+        ageLabel,
+        year: (o as any).team?.year ?? null,
+        date: o.offerDate ? new Date(o.offerDate).toISOString().slice(0,10) : null,
+        kickoffTime: o.kickoffTime ?? null,
+        kickoffFlexible: !!o.kickoffFlexible,
+        homeAway: o.homeAway as 'HOME' | 'AWAY' | 'FLEX',
+        notes: o.notes ?? null,
+        playTime: o.durationText ?? null,
+        strengthLabel,
+        address,
+        logoUrl: club?.logoUrl ?? null,
+      }
+    })
+
+    return NextResponse.json({ count: items.length, items })
+  }
+
   // — Eingehende Filter —
   const level = searchParams.get('level') as Prisma.EnumLevelFilter['equals'] | null
   const agesQ = searchParams.get('ages')
