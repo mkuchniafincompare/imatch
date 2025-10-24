@@ -118,6 +118,13 @@ export default function MyGamesPage() {
           body: JSON.stringify({ offerId }),
         })
         setSavedIds(prev => new Set([...prev, offerId]))
+        
+        // Add offer to savedOffers if not already there
+        const offerToAdd = ownOffers.find(o => o.id === offerId) 
+          || requestedOffers.find(o => o.id === offerId)
+        if (offerToAdd && !savedOffers.some(o => o.id === offerId)) {
+          setSavedOffers(prev => [...prev, offerToAdd])
+        }
       }
     } catch (e: any) {
       console.error('Save failed:', e)
@@ -145,6 +152,13 @@ export default function MyGamesPage() {
           body: JSON.stringify({ offerId }),
         })
         setRequestedIds(prev => new Set([...prev, offerId]))
+        
+        // Add offer to requestedOffers if not already there
+        const offerToAdd = ownOffers.find(o => o.id === offerId) 
+          || savedOffers.find(o => o.id === offerId)
+        if (offerToAdd && !requestedOffers.some(o => o.id === offerId)) {
+          setRequestedOffers(prev => [...prev, offerToAdd])
+        }
       }
     } catch (e: any) {
       console.error('Request failed:', e)
