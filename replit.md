@@ -6,7 +6,24 @@ Built with Next.js (App Router), React 19, Prisma ORM, and Tailwind CSS v4. The 
 
 ## Recent Changes (October 24, 2025)
 
-**Code Quality and Security Refactoring**:
+**Navigation Restructure - "Meine Spiele" Feature**:
+- Replaced "Suchen" (Search) navigation with "Meine Spiele" (My Games) feature
+- Deleted `/search` page and all related search form code
+- Created `/my-games` page with three-tab navigation system:
+  - **Meine Angebote**: Shows game offers created by the user (fetched via `/api/offer/my-offers`)
+  - **Gemerkt**: Shows offers the user has saved/bookmarked (fetched via `/api/saved-offers` + `/api/offer?ids=...`)
+  - **Angefragt**: Shows offers the user has requested (fetched via `/api/requests` + `/api/offer?ids=...`)
+- Tab design features glassmorphism aesthetic with color-coded indicators:
+  - Orange/red (#D04D2E) for "Meine Angebote" (➕)
+  - Amber for "Gemerkt" (⭐)
+  - Blue for "Angefragt" (✉️)
+- Each tab clearly shows which context the user is viewing with distinct icons and colors
+- Implemented cross-tab state synchronization: saving/requesting offers immediately updates all relevant tabs
+- Created `/api/offer/my-offers` route to fetch user's own offers
+- Extended `/api/offer` route to support fetching specific offers by ID via `?ids=` parameter
+- Updated `AppChrome` bottom navigation: "Suchen" → "Meine Spiele" (🎮 icon)
+
+**Previous: Code Quality and Security Refactoring**:
 - Created shared utility libraries to eliminate code duplication:
   - `src/lib/auth.ts`: Centralized authentication functions (cookie reading, session guards, password validation/hashing/verification, OTP/token generation)
   - `src/lib/http.ts`: HTTP utilities (JSON parsing, error/success responses, cookie management)
@@ -16,8 +33,7 @@ Built with Next.js (App Router), React 19, Prisma ORM, and Tailwind CSS v4. The 
   - Fixed password verification to return generic error messages preventing account status leakage
 - Cleaned up unused code:
   - Deleted `src/lib/ping.ts` utility
-  - Removed non-functional SSO placeholder buttons
-  - Simplified bottom navigation from 5 to 3 tabs (Search, Offer, Matches)
+  - Removed non-functional SSO placeholder buttons from login/register pages
 - Refactored all authentication and profile API routes to use shared utilities with consistent error handling
 
 **Previous: Vercel to Replit Migration**:
@@ -42,7 +58,7 @@ Preferred communication style: Simple, everyday language.
 **Layout Structure**: 
 - `AppChrome` wrapper conditionally renders header and bottom navigation based on route
 - Fixed header bar (12px height) with app icon, notifications, messages, and profile menu
-- Fixed bottom navigation (3 tabs: Search, Offer, Matches)
+- Fixed bottom navigation (3 tabs: Meine Spiele, Anbieten, Matches)
 - Content area with bottom padding to prevent overlap with fixed nav
 - Background image component with layered effects (color + grayscale mask)
 
