@@ -1,18 +1,14 @@
-import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { cookies } from 'next/headers'
+import { getUserIdFromCookie } from '@/lib/auth'
+import { errorResponse, jsonResponse } from '@/lib/http'
 
 export async function GET() {
   try {
-    // Robust Cookie-Read via next/headers
-    const raw = cookies().get('mm_session')?.value || ''
-    // handle plain ("uid:...") and encoded ("uid%3A...")
-    const val = raw.includes('%3A') ? decodeURIComponent(raw) : raw
-
-    if (!val.startsWith('uid:')) {
-      return NextResponse.json({ error: 'Nicht eingeloggt' }, { status: 401 })
+    const userId = await getUserIdFromCookie()
+    
+    if (!userId) {
+      return errorResponse('Nicht eingeloggt', 401)
     }
-    const userId = val.slice(4)
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -27,11 +23,11 @@ export async function GET() {
     })
 
     if (!user) {
-      return NextResponse.json({ error: 'User nicht gefunden' }, { status: 404 })
+      return errorResponse('User nicht gefunden', 404)
     }
 
-    return NextResponse.json({ user })
+    return jsonResponse({ user })
   } catch (e: any) {
-    return NextResponse.json({ error: e?.message || 'Fehler beim Laden' }, { status: 500 })
+    return errorResponse(e?.message || 'Fehler beim Laden', 500)
   }
 }

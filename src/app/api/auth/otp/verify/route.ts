@@ -1,24 +1,25 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { parseJsonBody, errorResponse, setCookie } from '@/lib/http'
 
 export async function POST(req: Request) {
   try {
-    const { email, code } = await req.json()
-    if (!email || !code) {
-      return NextResponse.json({ error: 'E-Mail und Code erforderlich' }, { status: 400 })
+    const body = await parseJsonBody<{ email: string; code: string }>(req)
+    
+    if (!body || !body.email || !body.code) {
+      return errorResponse('E-Mail und Code erforderlich')
     }
 
-    const user = await prisma.user.findUnique({ where: { email } })
+    const user = await prisma.user.findUnique({ where: { email: body.email } })
     if (!user || !user.otpCode || !user.otpExpiresAt) {
-      return NextResponse.json({ error: 'Ungültiger oder abgelaufener Code' }, { status: 401 })
+      return errorResponse('Ungültiger oder abgelaufener Code', 401)
     }
 
     const now = new Date()
-    if (user.otpCode !== String(code) || user.otpExpiresAt < now) {
-      return NextResponse.json({ error: 'Ungültiger oder abgelaufener Code' }, { status: 401 })
+    if (user.otpCode !== String(body.code) || user.otpExpiresAt < now) {
+      return errorResponse('Ungültiger oder abgelaufener Code', 401)
     }
 
-    // Code verbrauchen (löschen)
     await prisma.user.update({
       where: { id: user.id },
       data: { otpCode: null, otpExpiresAt: null },
@@ -26,19 +27,13 @@ export async function POST(req: Request) {
 
     const res = NextResponse.json({
       message: 'Login erfolgreich (OTP)',
-      user: { id: user.id, email: user.email, name: user.name ?? null },
+      user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName },
     })
 
-    res.cookies.set('mm_session', `uid:${user.id}`, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 7, // 7 Tage
-    })
+    setCookie(res, 'mm_session', `uid:${user.id}`, 60 * 60 * 24 * 7)
 
     return res
   } catch (e: any) {
-    return NextResponse.json({ error: e?.message ?? 'Unknown error' }, { status: 500 })
+    return errorResponse(e?.message ?? 'Unknown error', 500)
   }
 }

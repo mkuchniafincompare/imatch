@@ -1,14 +1,8 @@
 import { NextResponse } from 'next/server'
+import { clearCookie } from '@/lib/http'
 
 export async function POST() {
-  // löscht das mm_session Cookie
   const res = NextResponse.json({ message: 'Logout erfolgreich' })
-  res.cookies.set('mm_session', '', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/',
-    maxAge: 0,
-  })
+  clearCookie(res, 'mm_session')
   return res
 }

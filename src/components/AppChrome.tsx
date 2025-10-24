@@ -36,7 +36,7 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
           className="fixed bottom-0 inset-x-0 z-40 border-t bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/70"
           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }} // iOS safe area
         >
-          <div className="mx-auto max-w-screen-sm grid grid-cols-5 text-xs h-16">
+          <div className="mx-auto max-w-screen-sm grid grid-cols-3 text-xs h-16">
             <Link href="/search" className="flex flex-col items-center justify-center">
               <div>🔎</div>
               <div>Suchen</div>
@@ -48,14 +48,6 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
             <Link href="/matches" className="flex flex-col items-center justify-center font-semibold">
               <div>⚽</div>
               <div>Matches</div>
-            </Link>
-            <Link href="/x" className="flex flex-col items-center justify-center">
-              <div>✖️</div>
-              <div>X</div>
-            </Link>
-            <Link href="/y" className="flex flex-col items-center justify-center">
-              <div>🟡</div>
-              <div>Y</div>
             </Link>
           </div>
         </nav>
