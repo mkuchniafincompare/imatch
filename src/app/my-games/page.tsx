@@ -192,11 +192,26 @@ export default function MyGamesPage() {
   }
 
   return (
-    <main className="min-h-dvh relative">
-      <BackgroundImage />
+    <main className="relative min-h-dvh text-white pt-12">
+      {/* Hintergrundbild wie auf /matches */}
+      <BackgroundImage src="/back2.jpg" />
 
-      <div className="relative z-10 p-4 pb-6">
-        <h1 className="text-2xl font-bold mb-4 text-white drop-shadow-lg">Meine Spiele</h1>
+      {/* Fixed Top-Bar (unter App-Header) - Orange wie auf /matches */}
+      <div className="fixed top-12 left-0 right-0 z-20 px-3 pt-2 pb-2 bg-[#D04D2E]/90 backdrop-blur-md shadow-md">
+        <div className="mx-auto max-w-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <h1 className="text-lg font-semibold leading-none">Meine Spiele</h1>
+            </div>
+          </div>
+          <div className="mt-1 text-[11px] text-white/85">
+            {loading ? 'Lade …' : `${currentOffers.length} ${activeTab === 'own' ? 'Angebote' : activeTab === 'saved' ? 'Gemerkt' : 'Angefragt'}`}
+          </div>
+        </div>
+      </div>
+      <div className="h-16" />
+
+      <div className="relative z-10 mx-auto max-w-sm px-3 pt-3 pb-6">
 
         {/* Tab Navigation mit glassmorphism */}
         <div className="glass-card mb-6 p-1 rounded-2xl">
