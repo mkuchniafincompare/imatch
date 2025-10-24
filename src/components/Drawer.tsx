@@ -78,14 +78,17 @@ export default function Drawer({
 
   const translateOpen = 'translate-x-0 translate-y-0'
 
+  // Drawer soll komplett unsichtbar sein wenn geschlossen
+  if (!OPEN) {
+    return null
+  }
+
   return (
     <>
       {/* Overlay */}
       <div
         aria-hidden="true"
-        className={`fixed inset-0 z-40 bg-black/20 transition-opacity ${
-          OPEN ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
+        className="fixed inset-0 z-40 bg-black/30 transition-opacity"
         onClick={onClose}
       />
 
@@ -93,14 +96,13 @@ export default function Drawer({
       <aside
         role="dialog"
         aria-modal="true"
-        aria-hidden={!OPEN}
         className={[
           baseClass,
           positionClass,
           sizeClass,
-          'transition-transform duration-200 ease-out',
+          'transition-transform duration-300 ease-out',
           'flex flex-col',
-          OPEN ? translateOpen : `${translateClosed} pointer-events-none`,
+          translateOpen,
           className,
         ].join(' ')}
       >
