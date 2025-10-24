@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import { createPortal } from 'react-dom'
 
 type DrawerSide = 'right' | 'left' | 'bottom'
 
@@ -83,7 +84,7 @@ export default function Drawer({
     return null
   }
 
-  return (
+  const drawerContent = (
     <>
       {/* Overlay */}
       <div
@@ -126,4 +127,11 @@ export default function Drawer({
       </aside>
     </>
   )
+
+  // Portal zum body, damit der Drawer vom kompletten Viewport begrenzt wird
+  if (typeof document !== 'undefined') {
+    return createPortal(drawerContent, document.body)
+  }
+
+  return null
 }
