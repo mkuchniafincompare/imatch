@@ -216,32 +216,43 @@ export default function MyGamesPage() {
         {/* Tab Navigation mit glassmorphism */}
         <div className="glass-card mb-6 p-1 rounded-2xl">
           <div className="grid grid-cols-3 gap-1">
-            {(Object.entries(tabConfig) as [Tab, typeof tabConfig[Tab]][]).map(([key, config]) => (
-              <button
-                key={key}
-                onClick={() => setActiveTab(key)}
-                className={`
-                  relative py-3 px-2 rounded-xl text-sm font-medium transition-all
-                  ${activeTab === key 
-                    ? 'bg-white/30 backdrop-blur-md shadow-lg' 
-                    : 'bg-transparent hover:bg-white/10'
-                  }
-                `}
-              >
-                <div className="flex flex-col items-center gap-1">
-                  <span className={`text-2xl ${activeTab === key ? config.color : 'opacity-60'}`}>
-                    {config.icon}
-                  </span>
-                  <span className={`text-xs ${activeTab === key ? 'text-white font-semibold' : 'text-white/80'}`}>
-                    {config.label}
-                  </span>
-                  {/* Indikator-Linie unten */}
-                  {activeTab === key && (
-                    <div className={`absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-1 ${config.bgColor} rounded-full`} />
-                  )}
-                </div>
-              </button>
-            ))}
+            {(Object.entries(tabConfig) as [Tab, typeof tabConfig[Tab]][]).map(([key, config]) => {
+              const count = key === 'own' ? ownOffers.length : key === 'saved' ? savedOffers.length : requestedOffers.length
+              return (
+                <button
+                  key={key}
+                  onClick={() => setActiveTab(key)}
+                  className={`
+                    relative py-3 px-2 rounded-xl text-sm font-medium transition-all
+                    ${activeTab === key 
+                      ? 'bg-white/30 backdrop-blur-md shadow-lg' 
+                      : 'bg-transparent hover:bg-white/10'
+                    }
+                  `}
+                >
+                  <div className="flex flex-col items-center gap-1">
+                    <div className="relative">
+                      <span className={`text-2xl ${activeTab === key ? config.color : 'opacity-60'}`}>
+                        {config.icon}
+                      </span>
+                      {/* Badge mit Anzahl */}
+                      {count > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 shadow-md">
+                          {count}
+                        </span>
+                      )}
+                    </div>
+                    <span className={`text-xs ${activeTab === key ? 'text-white font-semibold' : 'text-white/80'}`}>
+                      {config.label}
+                    </span>
+                    {/* Indikator-Linie unten */}
+                    {activeTab === key && (
+                      <div className={`absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-1 ${config.bgColor} rounded-full`} />
+                    )}
+                  </div>
+                </button>
+              )
+            })}
           </div>
         </div>
 
