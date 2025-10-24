@@ -250,15 +250,37 @@ export default function MyGamesPage() {
         ) : (
           <div className="space-y-4">
             {currentOffers.map(offer => (
-              <MatchCard
-                key={offer.id}
-                match={offer}
-                isSaved={savedIds.has(offer.id)}
-                isRequested={requestedIds.has(offer.id)}
-                onSave={() => handleSave(offer.id)}
-                onRequest={() => handleRequest(offer.id)}
-                showActions={activeTab !== 'own'}
-              />
+              <div key={offer.id} className="glass-card overflow-hidden">
+                <MatchCard {...offer} ageLabel={offer.ageLabel || '—'} />
+                {activeTab !== 'own' && (
+                  <div className="px-3 pb-3 pt-2 border-t border-white/15 flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => handleSave(offer.id)}
+                      className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition ${
+                        savedIds.has(offer.id)
+                          ? 'bg-amber-500/20 text-amber-200 hover:bg-amber-500/30'
+                          : 'bg-white/10 text-white/80 hover:bg-white/20'
+                      }`}
+                    >
+                      <span>{savedIds.has(offer.id) ? '⭐' : '☆'}</span>
+                      <span>{savedIds.has(offer.id) ? 'Gemerkt' : 'Merken'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleRequest(offer.id)}
+                      className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition ${
+                        requestedIds.has(offer.id)
+                          ? 'bg-green-500/20 text-green-200 hover:bg-green-500/30'
+                          : 'bg-[#D04D2E]/80 text-white hover:bg-[#D04D2E]'
+                      }`}
+                    >
+                      <span>{requestedIds.has(offer.id) ? '✓' : '✉️'}</span>
+                      <span>{requestedIds.has(offer.id) ? 'Angefragt' : 'Anfragen'}</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         )}

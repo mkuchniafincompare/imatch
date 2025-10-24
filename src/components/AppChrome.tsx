@@ -37,9 +37,9 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }} // iOS safe area
         >
           <div className="mx-auto max-w-screen-sm grid grid-cols-3 text-xs h-16">
-            <Link href="/search" className="flex flex-col items-center justify-center">
-              <div>🔎</div>
-              <div>Suchen</div>
+            <Link href="/my-games" className="flex flex-col items-center justify-center">
+              <div>🎮</div>
+              <div>Meine Spiele</div>
             </Link>
             <Link href="/offer/new" className="flex flex-col items-center justify-center">
               <div>➕</div>

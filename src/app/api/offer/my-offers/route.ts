@@ -19,9 +19,9 @@ const STRENGTH_LABEL: Record<string, string> = {
   REGIONALLIGA: 'Regionalliga',
 }
 
-export async function GET(req: Request) {
+export async function GET() {
   try {
-    const userId = requireAuth(req)
+    const userId = await requireAuth()
 
     // Find all offers where the team's contactUserId is the current user
     const offers = await prisma.gameOffer.findMany({
