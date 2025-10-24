@@ -1,7 +1,7 @@
 
 
 import { NextResponse } from 'next/server'
-import { writeFile } from 'fs/promises'
+import { writeFile, mkdir } from 'fs/promises'
 import path from 'path'
 
 export async function POST(req: Request) {
@@ -27,6 +27,8 @@ export async function POST(req: Request) {
     const buffer = Buffer.from(arrayBuffer)
 
     const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'club-logos')
+    await mkdir(uploadDir, { recursive: true })
+    
     const ext = file.type === 'image/png' ? 'png' : 'jpg'
     const filename = `club_${Date.now()}.${ext}`
     const filepath = path.join(uploadDir, filename)
