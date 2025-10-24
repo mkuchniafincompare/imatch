@@ -1,0 +1,275 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum AgeGroup {
+  U6
+  U7
+  U8
+  U9
+  U10
+  U11
+  U12
+  U13
+  U14
+  U15
+  U16
+  U17
+  U18
+  U19
+}
+
+enum Strength {
+  SEHR_SCHWACH
+  SCHWACH
+  NORMAL
+  STARK
+  SEHR_STARK
+  GRUPPE
+  KREISKLASSE
+  KREISLIGA
+  BEZIRKSOBERLIGA
+  FOERDERLIGA
+  NLZ_LIGA
+  BAYERNLIGA
+  REGIONALLIGA
+}
+
+enum PlayForm {
+  FUNINO
+  FUSSBALL_4
+  FUSSBALL_5
+  FUSSBALL_7
+  NEUN_GEGEN_NEUN
+  ELF_GEGEN_ELF
+}
+
+enum Level {
+  BREITE
+  MITTEL
+  LEISTUNG
+}
+
+enum HomeAway {
+  HOME
+  AWAY
+  FLEX
+}
+
+enum FieldType {
+  FIELD
+  TURF
+  HALL
+}
+
+enum OfferStatus {
+  OPEN
+  MATCHED
+  CLOSED
+}
+
+enum MatchStatus {
+  PROPOSED
+  CONFIRMED
+  CANCELLED
+}
+
+enum UserStatus {
+  UNVERIFIED // frisch registriert, E-Mail noch nicht bestätigt
+  ACTIVE // E-Mail verifiziert
+  PENDING // 24h Frist verstrichen -> pending bis erneute DOI
+}
+
+model User {
+  id    String @id @default(cuid())
+  email String @unique
+
+  username  String @unique // redundante Speicherung der E-Mail als Username
+  firstName String
+  lastName  String
+
+  nickname String?
+  phone    String?
+
+  passwordHash String?
+  otpCode      String?
+  otpExpiresAt DateTime?
+
+  emailVerifiedAt         DateTime?
+  emailVerifyToken        String?
+  emailVerifyTokenExpires DateTime?
+
+  status UserStatus @default(UNVERIFIED)
+
+    // 👇 NEU: Einwilligungen
+  privacyAcceptedAt         DateTime?   // Pflicht beim Registrieren
+  privacyPolicyVersion      String?     // optional, z. B. "v1.0"
+  marketingOptInAt          DateTime?   // optional
+
+  teams    Team[]
+  messages Message[]
+}
+
+model Club {
+  id     String  @id @default(cuid())
+  name   String  @unique
+  city   String?
+  street String? // NEU: Adresse Straße
+  zip    String?
+
+  // Optionales Vereinslogo
+  logoUrl        String?   // z.B. '/uploads/club-logos/<file>'
+  logoMime       String?   // 'image/png' | 'image/jpeg'
+  logoWidth      Int?
+  logoHeight     Int?
+  logoUpdatedAt  DateTime?
+
+  // Meta
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  lat    Float?
+  lng    Float?
+  teams  Team[]
+  venues Venue[] // NEU
+}
+
+model Venue {
+  id     String  @id @default(cuid())
+  clubId String
+  name   String
+  street String?
+  city   String?
+  zip    String?
+
+  club Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
+
+  @@index([clubId])
+
+  lat    Float?
+  lng    Float?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([clubId, name])
+}
+
+model Team {
+  id            String   @id @default(cuid())
+  clubId        String
+  contactUserId String
+  ageGroup      AgeGroup
+  level         Level
+  lat           Float?
+  lng           Float?
+
+  // NEU für Step 3:
+  name          String?
+  year          Int?
+  preferredForm PlayForm?
+
+  club        Club @relation(fields: [clubId], references: [id])
+  contactUser User @relation(fields: [contactUserId], references: [id])
+
+  offers      GameOffer[]
+  matchesHome Match[]     @relation("HomeTeam")
+  matchesAway Match[]     @relation("AwayTeam")
+
+  @@index([ageGroup, level])
+}
+
+model GameOffer {
+  id     String @id @default(cuid())
+  teamId String
+
+  // ALT (läuft weiter, bis wir API/UI umstellen)
+  dateStart    DateTime
+  dateEnd      DateTime
+  fixedKickoff DateTime?
+
+  // NEU (sauber nach deinen Vorgaben)
+  offerDate       DateTime? // nur Datum
+  kickoffTime     String? // nur Uhrzeit als "HH:mm"
+  kickoffFlexible Boolean   @default(false)
+  strength        Strength? // Spielstärke
+  playForm        PlayForm? // Spielform
+  durationText    String? // Spielzeit (Freitext)
+
+  homeAway  HomeAway    @default(FLEX)
+  fieldType FieldType   @default(FIELD)
+  lat       Float?
+  lng       Float?
+  radiusKm  Int         @default(30)
+  notes     String?
+  status    OfferStatus @default(OPEN)
+  createdAt DateTime    @default(now())
+
+  team    Team    @relation(fields: [teamId], references: [id])
+  matches Match[]
+
+  // Altersklassen (ggf. mehrere) als eigene Relation
+  ages OfferAge[]
+
+  @@index([status, dateStart, dateEnd])
+}
+
+model OfferAge {
+  id       String   @id @default(cuid())
+  offerId  String
+  ageGroup AgeGroup
+
+  offer GameOffer @relation(fields: [offerId], references: [id])
+
+  @@index([offerId, ageGroup])
+}
+
+model Match {
+  id         String      @id @default(cuid())
+  offerId    String
+  homeTeamId String
+  awayTeamId String
+  kickoff    DateTime
+  venueLat   Float?
+  venueLng   Float?
+  status     MatchStatus @default(PROPOSED)
+  createdAt  DateTime    @default(now())
+
+  offer    GameOffer @relation(fields: [offerId], references: [id])
+  homeTeam Team      @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  awayTeam Team      @relation("AwayTeam", fields: [awayTeamId], references: [id])
+  messages Message[]
+
+  @@index([status, kickoff])
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  matchId   String
+  userId    String
+  text      String
+  createdAt DateTime @default(now())
+
+  match  Match @relation(fields: [matchId], references: [id])
+  author User  @relation(fields: [userId], references: [id])
+
+  @@index([matchId, createdAt])
+}
+
+model GeoCache {
+  id        String   @id @default(cuid())
+  zip       String?
+  city      String?
+  street    String?
+  lat       Float
+  lng       Float
+  provider  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([zip, city, street])
+}

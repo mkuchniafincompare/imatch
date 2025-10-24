@@ -1,0 +1,415 @@
+// src/app/api/offer/route.ts
+import { NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import type { Prisma } from '@prisma/client'
+
+// Session aus Cookie lesen (mm_session = "uid:<userId>")
+function getCookie(req: Request, name: string): string | null {
+  const raw = req.headers.get('cookie') || ''
+  const hit = raw.split(';').map(s => s.trim()).find(s => s.startsWith(name + '='))
+  if (!hit) return null
+  const v = hit.slice(name.length + 1)
+  try {
+    return decodeURIComponent(v)
+  } catch {
+    return v
+  }
+}
+function getSessionUserId(req: Request): string | null {
+  const v = getCookie(req, 'mm_session') || ''
+  return v.startsWith('uid:') ? v.slice(4) : null
+}
+
+/** Helper: sichere Zahl */
+function toNum(v: string | null, fallback?: number) {
+  if (v == null) return fallback
+  const n = Number(v)
+  return Number.isFinite(n) ? n : fallback
+}
+
+/** Distanzberechnung (km) */
+function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371
+  const toRad = (d: number) => (d * Math.PI) / 180
+  const dLat = toRad(lat2 - lat1)
+  const dLon = toRad(lon2 - lon1)
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  return R * c
+}
+
+/** Menschliche Labels für Spielstärke */
+const STRENGTH_LABEL: Record<string, string> = {
+  SEHR_SCHWACH: 'sehr schwach',
+  SCHWACH: 'schwach',
+  NORMAL: 'normal',
+  STARK: 'stark',
+  SEHR_STARK: 'sehr stark',
+  GRUPPE: 'Gruppe',
+  KREISKLASSE: 'Kreisklasse',
+  KREISLIGA: 'Kreisliga',
+  BEZIRKSOBERLIGA: 'Bezirksoberliga',
+  FOERDERLIGA: 'Förderliga',
+  NLZ_LIGA: 'NLZ-Liga',
+  BAYERNLIGA: 'Bayernliga',
+  REGIONALLIGA: 'Regionalliga',
+}
+
+/** ===== GET: mit Filtern + Aufbereitung für MatchCard =====
+ * Query-Parameter (alle optional):
+ * - level (BREITE|MITTEL|LEISTUNG)
+ * - ages="U12,U13"
+ * - homeAway=HOME|AWAY|FLEX
+ * - playForms="FUNINO,FUSSBALL_7,..."
+ * - strengthMin/strengthMax (Enum-Name wie oben)
+ * - zipcode, city, radiusKm
+ * - dateFrom, dateTo (ISO yyyy-mm-dd)
+ * - timeFrom, timeTo ("HH:mm")
+ */
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url)
+  const currentUserId = getSessionUserId(req)
+
+  // — Eingehende Filter —
+  const level = searchParams.get('level') as Prisma.EnumLevelFilter['equals'] | null
+  const agesQ = searchParams.get('ages')
+  const agesArr = agesQ ? agesQ.split(',').map(s => s.trim()).filter(Boolean) : null
+
+  const homeAway = searchParams.get('homeAway') as 'HOME'|'AWAY'|'FLEX'|null
+  const playFormsQ = searchParams.get('playForms')
+  const playForms = playFormsQ ? playFormsQ.split(',').map(s => s.trim()).filter(Boolean) : null
+
+  const strengthMin = searchParams.get('strengthMin')
+  const strengthMax = searchParams.get('strengthMax')
+
+  const zipcode = searchParams.get('zipcode')?.trim() || null
+  const city = searchParams.get('city')?.trim() || null
+  const radiusKm = toNum(searchParams.get('radiusKm'), undefined)
+
+  const dateFromQ = searchParams.get('dateFrom')
+  const dateToQ   = searchParams.get('dateTo')
+  const dateFrom  = dateFromQ ? new Date(dateFromQ) : undefined
+  const dateTo    = dateToQ   ? new Date(dateToQ)   : undefined
+
+  const timeFrom = searchParams.get('timeFrom') // "HH:mm"
+  const timeTo   = searchParams.get('timeTo')   // "HH:mm"
+
+  // Mini-Geocoder (MVP) PLZ/Ort → grobe Koordinaten
+  function geoFromZipCity(zip?: string|null, cty?: string|null): {lat:number,lng:number}|null {
+    const z = (zip || '').trim()
+    const t = (cty || '').trim().toLowerCase()
+    // City name overrides
+    if (t.includes('berlin')) return { lat: 52.52, lng: 13.405 }
+    if (t.includes('potsdam')) return { lat: 52.4, lng: 13.05 }
+    if (t.includes('münchen') || t.includes('munchen') || t.includes('munich')) return { lat: 48.137, lng: 11.575 }
+    if (t.includes('hamburg')) return { lat: 53.551, lng: 9.993 }
+    if (t.includes('köln') || t.includes('cologne')) return { lat: 50.938, lng: 6.96 }
+    if (t.includes('frankfurt')) return { lat: 50.1109, lng: 8.6821 }
+    if (t.includes('stuttgart')) return { lat: 48.775, lng: 9.182 }
+    if (t.includes('düsseldorf') || t.includes('duesseldorf')) return { lat: 51.2277, lng: 6.773 }
+    if (t.includes('leipzig')) return { lat: 51.3397, lng: 12.3731 }
+    if (t.includes('nürnberg') || t.includes('nuernberg') || t.includes('nuremberg')) return { lat: 49.454, lng: 11.077 }
+    if (t.includes('hannover')) return { lat: 52.375, lng: 9.732 }
+    if (t.includes('dresden')) return { lat: 51.050, lng: 13.737 }
+
+    // PLZ prefix mapping (rough centroids)
+    if (/^(10|11|12|13|14)/.test(z)) return { lat: 52.52, lng: 13.405 } // Berlin
+    if (/^144/.test(z)) return { lat: 52.4, lng: 13.05 } // Potsdam
+    if (/^(80|81)/.test(z)) return { lat: 48.137, lng: 11.575 } // München
+    if (/^(20|21|22)/.test(z)) return { lat: 53.551, lng: 9.993 } // Hamburg
+    if (/^50/.test(z)) return { lat: 50.938, lng: 6.96 } // Köln
+    if (/^60/.test(z)) return { lat: 50.1109, lng: 8.6821 } // Frankfurt
+    if (/^(70|71)/.test(z)) return { lat: 48.775, lng: 9.182 } // Stuttgart
+    if (/^40/.test(z)) return { lat: 51.2277, lng: 6.773 } // Düsseldorf
+    if (/^04/.test(z)) return { lat: 51.3397, lng: 12.3731 } // Leipzig
+    if (/^90/.test(z)) return { lat: 49.454, lng: 11.077 } // Nürnberg
+    if (/^30/.test(z)) return { lat: 52.375, lng: 9.732 } // Hannover
+    if (/^01/.test(z)) return { lat: 51.050, lng: 13.737 } // Dresden
+    return null
+  }
+  const geo = geoFromZipCity(zipcode, city)
+
+  // Enum-Order für Stärke-Spanne
+  const STRENGTH_ORDER = [
+    'SEHR_SCHWACH','SCHWACH','NORMAL','STARK','SEHR_STARK',
+    'GRUPPE','KREISKLASSE','KREISLIGA','BEZIRKSOBERLIGA','FOERDERLIGA','NLZ_LIGA',
+    'BAYERNLIGA','REGIONALLIGA'
+  ] as const
+  const sIdx = (s?: string|null) => s ? STRENGTH_ORDER.indexOf(s as any) : -1
+  const hasStrengthSpan = (strengthMin || strengthMax) != null
+
+  // DB-Where
+  const where: Prisma.GameOfferWhereInput = {
+    status: 'OPEN',
+    ...(level ? { team: { level } } : {}),
+    ...(agesArr ? { ages: { some: { ageGroup: { in: agesArr as any[] } } } } : {}),
+    ...(homeAway ? { homeAway } : {}),
+    ...(playForms ? { playForm: { in: playForms as any[] } } : {}),
+    ...(dateFrom && dateTo
+      ? { offerDate: { gte: dateFrom, lte: dateTo } }
+      : dateFrom ? { offerDate: { gte: dateFrom } }
+      : dateTo   ? { offerDate: { lte: dateTo } }
+      : {}),
+  }
+  // Eigene Angebote (vom eingeloggten User) ausblenden
+  if (currentUserId) {
+    const existingNot = (where as any).NOT
+    const notArray = Array.isArray(existingNot)
+      ? existingNot
+      : existingNot ? [existingNot] : []
+    ;(where as any).NOT = [...notArray, { team: { contactUserId: currentUserId } }]
+  }
+
+  // Query
+  const offers = await prisma.gameOffer.findMany({
+    where,
+    include: { team: { include: { club: true } }, ages: true },
+    orderBy: [{ offerDate: 'asc' }, { dateStart: 'asc' }],
+    take: 100,
+  })
+
+  // Zusatzfilter Zeitspanne & Stärke & Distanz
+  function withinTimeSpan(ko?: string|null) {
+    if (!timeFrom && !timeTo) return true
+    if (!ko) return false
+    if (timeFrom && ko < timeFrom) return false
+    if (timeTo && ko > timeTo) return false
+    return true
+  }
+
+  const minIdx = sIdx(strengthMin)
+  const maxIdx = sIdx(strengthMax)
+  function withinStrengthSpan(st?: string|null) {
+    if (!hasStrengthSpan) return true
+    if (!st) return false
+    const i = sIdx(st)
+    if (minIdx >= 0 && i < minIdx) return false
+    if (maxIdx >= 0 && i > maxIdx) return false
+    return true
+  }
+
+  let enriched = offers
+    .filter(o => withinTimeSpan(o.kickoffTime))
+    .filter(o => withinStrengthSpan(o.strength))
+    .map(o => {
+      let distanceKm: number | null = null
+      if (geo) {
+        let base: { lat: number; lng: number } | null = null
+        if (o.lat != null && o.lng != null) {
+          base = { lat: o.lat, lng: o.lng }
+        } else {
+          const cz = (o.team?.club as any)?.zip ?? null
+          const cc = (o.team?.club as any)?.city ?? null
+          const g2 = geoFromZipCity(cz, cc)
+          if (g2) base = g2
+        }
+        if (base) {
+          distanceKm = haversineKm(geo.lat, geo.lng, base.lat, base.lng)
+        }
+      }
+      return { ...o, distanceKm }
+    })
+
+  if (geo && typeof radiusKm === 'number') {
+    enriched = enriched
+      // Nur behalten, wenn wir eine Distanz haben UND sie im Radius liegt
+      .filter(o => o.distanceKm != null && o.distanceKm <= radiusKm)
+      .sort((a, b) => (a.distanceKm as number) - (b.distanceKm as number))
+  }
+
+  // Antwort für MatchCard
+  const items = enriched.map(o => {
+    const club = o.team?.club
+    const address = club
+      ? [club.street, club.zip, club.city].filter(Boolean).join(', ')
+      : null
+
+    // Alterslabel: nimm die 1. aus Offer.ages, sonst Team.ageGroup
+    const ageLabel = o.ages[0]?.ageGroup ?? (o as any).team?.ageGroup ?? null
+    const strengthLabel = o.strength ? (STRENGTH_LABEL[o.strength] ?? o.strength) : null
+
+    return {
+      id: o.id,
+      clubName: club?.name ?? '—',
+      ageLabel,
+      year: (o as any).team?.year ?? null,
+      date: o.offerDate ? new Date(o.offerDate).toISOString().slice(0,10) : null,
+      kickoffTime: o.kickoffTime ?? null,
+      kickoffFlexible: !!o.kickoffFlexible,
+      homeAway: o.homeAway as 'HOME' | 'AWAY' | 'FLEX',
+      notes: o.notes ?? null,
+      playTime: o.durationText ?? null,
+      strengthLabel,
+      address,
+      logoUrl: club?.logoUrl ?? null,
+    }
+  })
+
+  return NextResponse.json({ count: items.length, items })
+}
+
+/** ===== POST: legt Angebot mit neuen Feldern an =====
+ * Erwarteter Body (JSON):
+ * {
+ *   teamId: string,
+ *   ages: string[],                 // z.B. ["U12","U13"]
+ *   offerDate: string,              // ISO oder "yyyy-mm-dd"
+ *   kickoffTime?: string,           // "HH:mm"
+ *   kickoffFlexible?: boolean,
+ *   strength?: "SEHR_SCHWACH"|...|"REGIONALLIGA"
+ *   playForm?: "FUNINO"|"FUSSBALL_4"|...|"ELF_GEGEN_ELF"
+ *   durationText?: string,
+ *   homeAway?: "HOME"|"AWAY"|"FLEX",
+ *   fieldType?: "FIELD"|"TURF"|"HALL",
+ *   lat?: number, lng?: number, radiusKm?: number,
+ *   notes?: string
+ * }
+ */
+export async function POST(req: Request) {
+  try {
+    const body = await req.json()
+
+    const {
+      teamId,
+      ages, // string[]
+      offerDate,
+      kickoffTime,
+      kickoffFlexible = false,
+      strength,
+      playForm,
+      durationText,
+      homeAway = 'FLEX',
+      fieldType = 'FIELD',
+      lat = null,
+      lng = null,
+      radiusKm = 30,
+      notes = null,
+    } = body ?? {}
+
+    // 1) Validierung: Team existiert?
+    if (!teamId) {
+      return NextResponse.json({ error: 'teamId ist erforderlich' }, { status: 400 })
+    }
+    const team = await prisma.team.findUnique({ where: { id: teamId } })
+    if (!team) {
+      return NextResponse.json({ error: 'teamId nicht gefunden' }, { status: 400 })
+    }
+
+    // 2) Validierung: offerDate zwingend; HH:mm optional
+    if (!offerDate) {
+      return NextResponse.json({ error: 'offerDate (Datum) ist erforderlich' }, { status: 400 })
+    }
+    let od = new Date(offerDate)
+    if (isNaN(od.getTime())) {
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(offerDate))
+      if (m) {
+        od = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])))
+      }
+    }
+    if (isNaN(od.getTime())) {
+      return NextResponse.json({ error: 'offerDate ist ungültig' }, { status: 400 })
+    }
+    if (kickoffTime && !/^\d{2}:\d{2}$/.test(kickoffTime)) {
+      return NextResponse.json({ error: 'kickoffTime muss "HH:mm" sein' }, { status: 400 })
+    }
+
+    // 3) Enums grob prüfen
+    const strengthOk =
+      strength == null ||
+      [
+        'SEHR_SCHWACH','SCHWACH','NORMAL','STARK','SEHR_STARK',
+        'GRUPPE','KREISKLASSE','KREISLIGA','BEZIRKSOBERLIGA','FOERDERLIGA','NLZ_LIGA',
+        'BAYERNLIGA','REGIONALLIGA'
+      ].includes(strength)
+    if (!strengthOk) return NextResponse.json({ error: 'strength ungültig' }, { status: 400 })
+
+    const playOk =
+      playForm == null ||
+      ['FUNINO','FUSSBALL_4','FUSSBALL_5','FUSSBALL_7','NEUN_GEGEN_NEUN','ELF_GEGEN_ELF'].includes(playForm)
+    if (!playOk) return NextResponse.json({ error: 'playForm ungültig' }, { status: 400 })
+
+    // 4) Erlaubte Altersklassen (U6–U19)
+    const allowedAges = new Set([
+      'U6','U7','U8','U9','U10','U11','U12','U13','U14','U15','U16','U17','U18','U19'
+    ])
+    const agesArr: string[] = Array.isArray(ages) ? ages : []
+    if (agesArr.length === 0) {
+      return NextResponse.json({ error: 'ages (mind. eine Altersklasse) ist erforderlich' }, { status: 400 })
+    }
+    for (const ag of agesArr) {
+      if (!allowedAges.has(String(ag))) {
+        return NextResponse.json({ error: `Altersklasse ${ag} aktuell nicht erlaubt` }, { status: 400 })
+      }
+    }
+
+    // 5) ALT-Felder kompatibel setzen (gleiches Datum)
+    const dateStart = od
+    const dateEnd = od
+    const fixedKickoff =
+      kickoffFlexible || !kickoffTime ? null : new Date(`${od.toISOString().slice(0,10)}T${kickoffTime}:00.000Z`)
+
+    // 6) Zwei Schritte: Offer → Ages
+    const createdOffer = await prisma.gameOffer.create({
+      data: {
+        teamId,
+        offerDate: od,
+        kickoffTime: kickoffTime ?? null,
+        kickoffFlexible: Boolean(kickoffFlexible),
+        strength: strength ?? null,
+        playForm: playForm ?? null,
+        durationText: durationText ?? null,
+        dateStart,
+        dateEnd,
+        fixedKickoff,
+        homeAway,
+        fieldType,
+        lat,
+        lng,
+        radiusKm: Number(radiusKm) || 30,
+        notes: notes ?? null,
+      },
+      include: {
+        team: { include: { club: true } },
+      },
+    })
+
+    await prisma.offerAge.createMany({
+      data: agesArr.map((ag) => ({
+        offerId: createdOffer.id,
+        ageGroup: ag as any,
+      })),
+    })
+
+    const full = await prisma.gameOffer.findUnique({
+      where: { id: createdOffer.id },
+      include: { team: { include: { club: true } }, ages: true },
+    })
+
+    return NextResponse.json(
+      {
+        id: full!.id,
+        club: full!.team.club?.name ?? null,
+        city: full!.team.club?.city ?? null,
+        teamLevel: full!.team.level,
+        ages: full!.ages.map(a => a.ageGroup),
+        offerDate: full!.offerDate,
+        kickoffTime: full!.kickoffTime,
+        kickoffFlexible: full!.kickoffFlexible,
+        strength: full!.strength,
+        playForm: full!.playForm,
+        durationText: full!.durationText,
+        homeAway: full!.homeAway,
+        fieldType: full!.fieldType,
+        notes: full!.notes,
+        dateStart: full!.dateStart,
+        dateEnd: full!.dateEnd,
+        fixedKickoff: full!.fixedKickoff,
+      },
+      { status: 201 }
+    )
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message ?? 'Unknown error' }, { status: 500 })
+  }
+}
