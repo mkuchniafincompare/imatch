@@ -258,7 +258,12 @@ export default function ProfileAffiliation() {
     <>
       <section className="rounded-2xl border border-white/25 bg-white/10 backdrop-blur-sm p-4">
         <header className="mb-3 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-white">Verein &amp; Teams</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-base font-semibold text-white">Verein &amp; Teams</h2>
+            {!loading && !error && !data?.club && (
+              <Image src="/warning.png" alt="Warnung" width={20} height={20} className="inline-block" />
+            )}
+          </div>
           <button
             type="button"
             onClick={() => {
@@ -338,7 +343,11 @@ export default function ProfileAffiliation() {
       </section>
 
       {/* Drawer: Verein wählen/anlegen */}
-      <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)}>
+      <Drawer 
+        open={drawerOpen} 
+        onClose={() => setDrawerOpen(false)}
+        widthClass="w-full sm:w-[600px]"
+      >
         <div className="p-4">
           <h2 className="text-lg font-semibold text-white mb-4">Verein wählen oder anlegen</h2>
           

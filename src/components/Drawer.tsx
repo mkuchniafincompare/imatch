@@ -67,7 +67,7 @@ export default function Drawer({
 
   const sizeClass = side === 'bottom' ? H : W
   const baseClass =
-    'fixed z-[70] bg-neutral-900/90 text-white border border-white/20 shadow-xl rounded-tl-xl rounded-tr-none rounded-bl-none backdrop-blur-md'
+    'fixed z-[70] bg-neutral-900/95 text-white border border-white/20 shadow-xl rounded-tl-xl rounded-tr-none rounded-bl-none backdrop-blur-md overflow-hidden'
 
   const translateClosed =
     side === 'right'
