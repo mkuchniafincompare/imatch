@@ -60,10 +60,10 @@ export default function Drawer({
 
   const positionClass =
     side === 'right'
-      ? 'top-12 bottom-16 right-0'
+      ? 'top-0 bottom-0 right-0'
       : side === 'left'
-      ? 'top-12 bottom-16 left-0'
-      : 'left-0 right-0 bottom-16'
+      ? 'top-0 bottom-0 left-0'
+      : 'left-0 right-0 bottom-0'
 
   const sizeClass = side === 'bottom' ? H : W
   const baseClass =
