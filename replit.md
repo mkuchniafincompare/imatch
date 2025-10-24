@@ -6,7 +6,27 @@ Built with Next.js (App Router), React 19, Prisma ORM, and Tailwind CSS v4. The 
 
 ## Recent Changes (October 24, 2025)
 
-**Navigation Restructure - "Meine Spiele" Feature**:
+**Profile Club/Team Management Enhancement**:
+- Extended `ProfileAffiliation` component with "+ Verein/Team hinzufügen" button
+- Integrated club selection/creation drawer (similar to registration flow):
+  - Live search for existing clubs with debounced input
+  - "Neuen Verein anlegen" expandable form with club name, address, logo upload, and venues
+  - Duplicate club name validation with inline error messaging
+  - All club creation features from registration now available in profile
+- Created `/profile/add-team` page for team selection after club choice:
+  - Shows selected club details with logo
+  - Lists existing teams for selection (if any)
+  - New team creation form with age group, name, and year fields
+  - Uses same glassmorphism UI design as rest of app
+- Created `/api/team/join` route (POST) to assign existing team to user
+- Updated `My Games` page header to use orange background (#D04D2E) and `/back2.jpg` image matching `/matches` design
+- Added warning badge (yellow triangle icon) to profile button in header when no club is assigned:
+  - Badge appears on profile icon in top-right header
+  - Same warning icon also appears next to "Profil" in dropdown menu
+  - Helps users immediately see they need to complete their profile setup
+- Users can now manage multiple clubs/teams from profile without re-registering
+
+**Previous: Navigation Restructure - "Meine Spiele" Feature**:
 - Replaced "Suchen" (Search) navigation with "Meine Spiele" (My Games) feature
 - Deleted `/search` page and all related search form code
 - Created `/my-games` page with three-tab navigation system:

@@ -26,13 +26,35 @@ export default function HeaderBar() {
   // Badge-Zahlen (Platzhalter; später vom Server/API befüllen)
   const [unreadNotifs] = useState<number>(0)
   const [unreadMessages] = useState<number>(0)
+  
+  // Club-Status für Warnungs-Badge
+  const [hasClub, setHasClub] = useState<boolean | null>(null)
 
   const profileRef = useRef<HTMLDivElement>(null)
   const bellRef = useRef<HTMLDivElement>(null)
   const chatRef = useRef<HTMLDivElement>(null)
 
   useOnClickOutside(profileRef, () => setOpenProfile(false))
-  // Für Bell/Chat verwenden wir einen Overlay-Click-Catcher (siehe unten)
+
+  // Prüfe, ob User einen Club hat
+  useEffect(() => {
+    let alive = true
+    ;(async () => {
+      try {
+        const res = await fetch('/api/profile/affiliation', { cache: 'no-store' })
+        const data = await res.json().catch(() => ({}))
+        if (!alive) return
+        if (res.ok && data) {
+          setHasClub(!!data.club)
+        }
+      } catch {
+        // Ignorieren - Badge wird nicht angezeigt bei Fehler
+      }
+    })()
+    return () => {
+      alive = false
+    }
+  }, [])
 
   async function logout() {
     await fetch('/api/auth/logout', { method: 'POST' })
@@ -127,6 +149,16 @@ export default function HeaderBar() {
                 height={18}
                 className="object-contain"
               />
+              {/* Warnungs-Badge wenn kein Club vorhanden */}
+              {hasClub === false && (
+                <Image
+                  src="/warning.png"
+                  alt="Warnung"
+                  width={16}
+                  height={16}
+                  className="absolute -top-1 -right-1 object-contain"
+                />
+              )}
             </button>
 
             {openProfile && (
@@ -136,11 +168,21 @@ export default function HeaderBar() {
               >
                 <Link
                   href="/profile"
-                  className="block px-3 py-2 text-sm text-gray-900 hover:bg-gray-100"
+                  className="flex items-center justify-between px-3 py-2 text-sm text-gray-900 hover:bg-gray-100"
                   onClick={() => setOpenProfile(false)}
                   role="menuitem"
                 >
-                  Profil
+                  <span>Profil</span>
+                  {/* Warnungs-Icon im Menü wenn kein Club */}
+                  {hasClub === false && (
+                    <Image
+                      src="/warning.png"
+                      alt="Warnung"
+                      width={14}
+                      height={14}
+                      className="object-contain"
+                    />
+                  )}
                 </Link>
                 <button
                   onClick={logout}
@@ -164,7 +206,7 @@ export default function HeaderBar() {
       >
         <div className="text-sm text-gray-700">
           <p>Hier zeigen wir Nachrichten an. (MVP‑Platzhalter)</p>
-          <p className="mt-2 text-xs text-gray-500">Später: Konversationen, „alle gelesen“, Deep‑Links.</p>
+          <p className="mt-2 text-xs text-gray-500">Später: Konversationen, „alle gelesen", Deep‑Links.</p>
         </div>
       </Drawer>
 
