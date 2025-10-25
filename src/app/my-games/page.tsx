@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import BackgroundImage from '@/components/BackgroundImage'
 import MatchCard from '@/components/MatchCard'
+import ConfirmedMatchCard from '@/components/ConfirmedMatchCard'
 import Drawer from '@/components/Drawer'
 
 type Tab = 'own' | 'saved' | 'requested' | 'confirmed'
@@ -24,6 +25,12 @@ interface MatchItem {
   savedCount?: number
   requestCount?: number
   pendingRequestCount?: number
+  // For confirmed matches
+  opponentClubName?: string
+  opponentAgeLabel?: string | null
+  opponentYear?: number | null
+  opponentLogoUrl?: string | null
+  isOwner?: boolean
 }
 
 export default function MyGamesPage() {
@@ -389,14 +396,29 @@ export default function MyGamesPage() {
                   style={activeTab === 'confirmed' ? { border: '2px solid #22c55e' } : undefined}
                   onClick={() => hasRequests ? openRequestsDrawer(offer.id) : null}
                 >
-                  <MatchCard {...offer} ageLabel={offer.ageLabel || '—'} />
-                  {activeTab === 'confirmed' && offer.pendingRequestCount !== undefined && offer.pendingRequestCount > 0 && (
-                    <div className="px-3 pb-3 pt-2 border-t border-white/15 flex flex-wrap gap-2">
-                      <div className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm bg-yellow-500/20 text-yellow-200">
-                        <span>⏳</span>
-                        <span className="font-medium">{offer.pendingRequestCount} {offer.pendingRequestCount === 1 ? 'Anfrage offen' : 'Anfragen offen'}</span>
-                      </div>
-                    </div>
+                  {activeTab === 'confirmed' ? (
+                    <ConfirmedMatchCard 
+                      clubName={offer.clubName}
+                      ageLabel={offer.ageLabel}
+                      year={offer.year}
+                      logoUrl={offer.logoUrl}
+                      opponentClubName={offer.opponentClubName || '—'}
+                      opponentAgeLabel={offer.opponentAgeLabel}
+                      opponentYear={offer.opponentYear}
+                      opponentLogoUrl={offer.opponentLogoUrl}
+                      date={offer.date}
+                      kickoffTime={offer.kickoffTime}
+                      kickoffFlexible={offer.kickoffFlexible}
+                      homeAway={offer.homeAway}
+                      notes={offer.notes}
+                      playTime={offer.playTime}
+                      strengthLabel={offer.strengthLabel}
+                      address={offer.address}
+                      pendingRequestCount={offer.pendingRequestCount}
+                      isOwner={offer.isOwner}
+                    />
+                  ) : (
+                    <MatchCard {...offer} ageLabel={offer.ageLabel || '—'} />
                   )}
                   {activeTab === 'own' && (
                     <div className="px-3 pb-3 pt-2 border-t border-white/15 flex flex-wrap gap-2">

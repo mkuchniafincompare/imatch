@@ -1,123 +1,6 @@
 # Overview
 
-This is **iMatch**, a Next.js 15 application for finding and offering youth soccer matches and tournaments in Germany. The platform connects coaches and teams to schedule friendly games, with features for filtering by age group, location, play format, and team strength.
-
-Built with Next.js (App Router), React 19, Prisma ORM, and Tailwind CSS v4. The app uses cookie-based authentication with bcrypt password hashing and optional OTP login. Users can register, create or join clubs, manage teams, post match offers, search for opponents, and save/request matches.
-
-## Recent Changes (October 25, 2025)
-
-**UI/UX Improvements - Offer Management Streamlining**:
-- Redesigned "Meine Angebote" tab workflow:
-  - Vereinbarte Spiele (with ACCEPTED requests) automatically removed from "Meine Angebote" tab
-  - Changed empty state text: "Keine offenen Spielangebote erstellt" (was: "Noch keine Angebote erstellt")
-  - Empty state now shows prominent "Spielangebot erstellen" button linking to `/offer/new`
-  - Added permanent "Spielangebot erstellen" button at bottom of offer list (always visible when tab active)
-- "Vereinbart" tab enhancements:
-  - Shows pending request counter for confirmed matches: "⏳ X Anfrage(n) offen" (yellow badge)
-  - Only counts requests with status PENDING (excludes rejected/accepted)
-  - API route `/api/requests/confirmed` includes `_count` for pending requests
-- Match visibility improvements:
-  - Confirmed matches (offers with ACCEPTED requests) hidden from `/matches` search results
-  - Prevents double-booking and confusion for other users
-  - Filter applied in `/api/offer` route via Prisma query: `requests: { none: { status: 'ACCEPTED' } }`
-- Navigation simplification:
-  - Removed "Anbieten" (➕) from bottom navigation bar
-  - Bottom navigation now has 2 tabs instead of 3: "Meine Spiele" (🎮) and "Matches" (⚽)
-  - Offer creation now exclusively accessible via "Meine Angebote" tab
-
-**Comprehensive Request Management System** (COMPLETED):
-- Implemented complete multi-channel notification system for match requests:
-  - **Database Schema**: Added `Notification` and `InboxMessage` models for app-internal messaging (Prisma client regenerated)
-  - **API Routes**: Created `/api/notifications` and `/api/messages` (GET for list + unread count, POST for creation, PATCH to mark as read)
-  - **Email Integration**: Integrated Replit Mail for transactional emails via `/api/requests` POST route
-  - **Request Flow**: When user requests a match, system automatically creates:
-    1. Notification (bell icon) for offer owner
-    2. InboxMessage (chat icon) with request details
-    3. Email notification to offer owner's email address
-- Extended `/my-games` page with complete request management workflow:
-  - Added request count to `/api/offer/my-offers` (via `_count.requests`)
-  - Display "X × angefragt" badge (orange) on own offers with requests
-  - Orange border around offers with pending requests
-  - Clickable offer cards open Request Details Drawer showing:
-    - List of requesters with club name, team, and message
-    - Status badges (Ausstehend/Akzeptiert/Abgelehnt)
-    - Accept/Reject buttons for pending requests
-- Created `/api/requests/[offerId]` route to fetch all requests for an offer (with authorization check)
-- Created `/api/requests/[offerId]/respond` route for accepting/rejecting requests:
-  - Only one request can be accepted per offer (prevents double-booking)
-  - Sends notifications, messages, and emails for both accept and reject actions
-  - Updates request status to ACCEPTED or REJECTED
-- Added fourth tab "Vereinbart" to `/my-games` showing confirmed matches:
-  - Displays accepted requests for both parties (offer creators and requesters)
-  - API route `/api/requests/confirmed` fetches all ACCEPTED requests where user is involved
-  - Green border (2px solid) around all confirmed match cards using inline styles
-  - Action buttons (Merken/Anfragen) hidden on confirmed matches (only visible on saved/requested tabs)
-  - Robust error handling with text-based JSON parsing to prevent crashes
-- Enhanced HeaderBar with real-time badge counts:
-  - Fetches unread counts from `/api/notifications` and `/api/messages` on mount
-  - Displays red badges on bell/chat icons when unread items exist
-  - Notification drawer shows all notifications with visual distinction for unread (amber background)
-  - Message drawer shows all inbox messages with visual distinction for unread (blue background)
-  - Click-to-mark-as-read functionality updates counts immediately
-- All notification/messaging flows tested and working end-to-end
-- **Technical Notes**: Prisma model names use camelCase for client access (e.g., `prisma.notification`, `prisma.inboxMessage`)
-
-**Profile Club/Team Management Enhancement** (October 24, 2025):
-- Extended `ProfileAffiliation` component with "+ Verein/Team hinzufügen" button
-- Integrated club selection/creation drawer (similar to registration flow):
-  - Live search for existing clubs with debounced input
-  - "Neuen Verein anlegen" expandable form with club name, address, logo upload, and venues
-  - Duplicate club name validation with inline error messaging
-  - All club creation features from registration now available in profile
-- Created `/profile/add-team` page for team selection after club choice:
-  - Shows selected club details with logo
-  - Lists existing teams for selection (if any)
-  - New team creation form with age group, name, and year fields
-  - Uses same glassmorphism UI design as rest of app
-- Created `/api/team/join` route (POST) to assign existing team to user
-- Updated `My Games` page header to use orange background (#D04D2E) and `/back2.jpg` image matching `/matches` design
-- Added warning badge (yellow triangle icon) to profile button in header when no club is assigned:
-  - Badge appears on profile icon in top-right header
-  - Same warning icon also appears next to "Profil" in dropdown menu
-  - Helps users immediately see they need to complete their profile setup
-- Users can now manage multiple clubs/teams from profile without re-registering
-
-**Previous: Navigation Restructure - "Meine Spiele" Feature**:
-- Replaced "Suchen" (Search) navigation with "Meine Spiele" (My Games) feature
-- Deleted `/search` page and all related search form code
-- Created `/my-games` page with three-tab navigation system:
-  - **Meine Angebote**: Shows game offers created by the user (fetched via `/api/offer/my-offers`)
-  - **Gemerkt**: Shows offers the user has saved/bookmarked (fetched via `/api/saved-offers` + `/api/offer?ids=...`)
-  - **Angefragt**: Shows offers the user has requested (fetched via `/api/requests` + `/api/offer?ids=...`)
-- Tab design features glassmorphism aesthetic with color-coded indicators:
-  - Orange/red (#D04D2E) for "Meine Angebote" (➕)
-  - Amber for "Gemerkt" (⭐)
-  - Blue for "Angefragt" (✉️)
-- Each tab clearly shows which context the user is viewing with distinct icons and colors
-- Implemented cross-tab state synchronization: saving/requesting offers immediately updates all relevant tabs
-- Created `/api/offer/my-offers` route to fetch user's own offers
-- Extended `/api/offer` route to support fetching specific offers by ID via `?ids=` parameter
-- Updated `AppChrome` bottom navigation: "Suchen" → "Meine Spiele" (🎮 icon)
-
-**Previous: Code Quality and Security Refactoring**:
-- Created shared utility libraries to eliminate code duplication:
-  - `src/lib/auth.ts`: Centralized authentication functions (cookie reading, session guards, password validation/hashing/verification, OTP/token generation)
-  - `src/lib/http.ts`: HTTP utilities (JSON parsing, error/success responses, cookie management)
-- Removed critical security vulnerabilities:
-  - Deleted `/api/debug/users` endpoint that exposed user data
-  - Removed all console.log statements leaking OTP codes and verification tokens
-  - Fixed password verification to return generic error messages preventing account status leakage
-- Cleaned up unused code:
-  - Deleted `src/lib/ping.ts` utility
-  - Removed non-functional SSO placeholder buttons from login/register pages
-- Refactored all authentication and profile API routes to use shared utilities with consistent error handling
-
-**Previous: Vercel to Replit Migration**:
-- Migrated from Vercel hosting to Replit environment
-- Switched database from SQLite to PostgreSQL (Replit Neon database)
-- Configured Next.js dev server to run on port 5000 with host 0.0.0.0 for Replit compatibility
-- Set up production deployment configuration using autoscale deployment target
-- Environment variables configured: DATABASE_URL, NEXT_PUBLIC_BASE_URL
+**iMatch** is a Next.js 15 application designed to connect youth soccer teams and coaches in Germany for scheduling friendly matches and tournaments. It enables users to register, manage clubs and teams, post match offers, search for opponents based on various criteria (age group, location, play format, team strength), and manage match requests. The platform aims to streamline the process of finding and offering soccer matches, enhancing connectivity within the youth soccer community.
 
 # User Preferences
 
@@ -127,99 +10,40 @@ Preferred communication style: Simple, everyday language.
 
 ## Frontend Architecture
 
-**Framework**: Next.js 15 with App Router and React Server Components pattern. All pages use `'use client'` directives for interactivity.
-
-**Styling**: Tailwind CSS v4 with custom utility classes. Design features a glassmorphism aesthetic with backdrop blur effects, semi-transparent overlays, and a mobile-first responsive layout optimized for phones.
-
-**Layout Structure**: 
-- `AppChrome` wrapper conditionally renders header and bottom navigation based on route
-- Fixed header bar (12px height) with app icon, notifications, messages, and profile menu
-- Fixed bottom navigation (3 tabs: Meine Spiele, Anbieten, Matches)
-- Content area with bottom padding to prevent overlap with fixed nav
-- Background image component with layered effects (color + grayscale mask)
-
-**Component Architecture**:
-- Reusable UI components: `Drawer`, `FilterChip`, `MatchCard`, `HeroHeader`
-- Feature-specific components: `FiltersDrawer`, `ProfileInfo`, `ProfileAffiliation`, `PasswordChange`
-- Registration flow split across multiple pages with progress indicator
-- Client-side state management using React hooks (no external state library)
-
-**Key Design Patterns**:
-- Form validation with real-time feedback and error shaking animations
-- Debounced search with live results
-- Filter state management with apply/reset pattern
-- Toast-style info/error messages inline with forms
-- Drawer overlays for filters and notifications
+**Framework**: Next.js 15 (App Router) with React Server Components.
+**Styling**: Tailwind CSS v4, featuring a glassmorphism aesthetic with mobile-first responsiveness.
+**Layout**: `AppChrome` for conditional header/bottom navigation rendering. Fixed header (12px) and bottom navigation (3 tabs: Meine Spiele, Anbieten, Matches).
+**Component Architecture**: Reusable UI components (e.g., `Drawer`, `MatchCard`), feature-specific components, client-side state management with React hooks.
+**Design Patterns**: Form validation with real-time feedback, debounced search, filter state management, drawer overlays for filters and notifications.
 
 ## Backend Architecture
 
-**API Routes**: RESTful API implemented via Next.js Route Handlers in `/src/app/api/`
+**API Routes**: RESTful API via Next.js Route Handlers (`/src/app/api/`).
+**Authentication**: Cookie-based sessions (`mm_session`). Supports password (bcrypt) and OTP login. Email verification uses token-based Double Opt-In. Session verification via middleware.
+**Middleware**: `src/middleware.ts` protects authenticated routes, redirecting unauthenticated users to `/login`.
+**Database Layer**: Prisma ORM with PostgreSQL (Replit Neon). Schema includes User, Club, Team, Venue, Offer, OfferRequest, SavedOffer, GeocodeCache.
+**Business Logic**: Geocoding (Nominatim integration with caching), Haversine distance calculation for search, strength/format enums, multi-criteria filtering.
+**File Upload**: Club logo upload to `/public/uploads/club-logos/` (PNG/JPEG, max 5MB).
 
-**Shared Utilities**:
-- `src/lib/auth.ts`: Core authentication functions used across all auth routes (getUserIdFromCookie, requireAuth, validatePassword, hashPassword, verifyPassword, generateOtpCode, generateToken)
-- `src/lib/http.ts`: HTTP helper functions for consistent request/response handling (parseJsonBody, errorResponse, successResponse, setCookie, clearCookie, notEmpty)
-- All API routes refactored to use these shared utilities for consistency and maintainability
+## System Design Choices
 
-**Authentication**:
-- Cookie-based sessions using `mm_session` cookie format: `uid:<userId>`
-- Dual login methods: password (bcrypt) and OTP (6-digit code, 10min expiry)
-- Email verification via token-based Double Opt-In (DOI)
-- Session verification via middleware protecting authenticated routes
-- Generic error messages for all password verification failures to prevent information leakage about account status
+- **Offer Management**: Streamlined workflow for managing offers, including automatic removal of accepted offers from "Meine Angebote" and a dedicated "Vereinbart" tab for confirmed matches. VS-style display for confirmed matches.
+- **Request Management**: Comprehensive system with multi-channel notifications (in-app notifications, inbox messages, email). Request management workflow integrated into `/my-games` page with accept/reject functionality. Only one request can be accepted per offer.
+- **Profile Management**: Enhanced club/team management in profile, allowing users to add/join clubs and teams. Warning badge for incomplete profiles.
+- **Navigation**: Redesigned bottom navigation, replacing "Suchen" with "Meine Spiele" (My Games) which includes "Meine Angebote", "Gemerkt", and "Angefragt" tabs. Offer creation is now primarily accessed via "Meine Angebote".
+- **Code Quality & Security**: Centralized authentication and HTTP utilities. Removal of debug endpoints and sensitive console logs. Generic error messages for security.
+- **Replit Migration**: Application migrated from Vercel to Replit, utilizing Replit Neon PostgreSQL.
 
-**Middleware Protection**:
-- `/src/middleware.ts` guards all routes except public paths (/, /login, /register, /verify-email)
-- Static assets and auth API routes are always accessible
-- Redirects unauthenticated users to `/login?redirectTo=<path>`
+# External Dependencies
 
-**Database Layer**:
-- Prisma ORM with schema defining: User, Club, Team, Venue, Offer, OfferRequest, SavedOffer, GeocodeCache
-- Primary entities: clubs (soccer organizations), teams (age groups), offers (match availability)
-- Relationships: users contact teams, teams belong to clubs, offers link to teams
-- Email verification tokens stored on User model with expiry timestamps
-
-**Business Logic**:
-- Geocoding service with Nominatim integration and database caching for address → lat/lng conversion
-- Haversine distance calculation for radius-based match search
-- Strength and play format enums with German labels (Kreisklasse, Funino, etc.)
-- Multi-criteria filtering: age, strength range, home/away preference, date/time windows, location radius
-
-**File Upload**:
-- Club logo upload to `/public/uploads/club-logos/` directory
-- Validation: PNG/JPEG only, 5MB max size
-- Returns public URL for database storage
-
-## External Dependencies
-
-**Database**: Prisma ORM with PostgreSQL (Replit Neon database). Schema includes geocoding cache table for performance optimization. Migrations managed via `npm run db:push` command.
-
+**Database**: Prisma ORM with PostgreSQL (Replit Neon database).
 **Third-Party Services**:
-- **Geocoding**: Nominatim (OpenStreetMap) API for address geocoding with configurable endpoint via `GEOCODER_NOMINATIM_URL` environment variable
-- **Email**: Nodemailer prepared for transactional emails (verification, OTP) but currently using console logging in development
-
+- **Geocoding**: Nominatim (OpenStreetMap) API.
+- **Email**: Nodemailer for transactional emails (currently console-only in development).
 **Authentication Libraries**:
-- `bcryptjs` for password hashing (10 rounds)
-- Native `crypto` module for token generation (24-byte hex tokens)
-
+- `bcryptjs` for password hashing.
+- Native `crypto` module for token generation.
 **UI Libraries**:
-- Tailwind CSS v4 with PostCSS integration
-- Google Fonts integration (Poppins font family)
-- Next.js Image component for optimized logo/icon rendering
-
-**Planned Integrations**:
-- Real email delivery service (currently console-only)
-- Social sign-on (SSO) - removed placeholder UI, to be implemented when needed
-
-**Environment Configuration**:
-- `DATABASE_URL` for PostgreSQL database connection (managed by Replit)
-- `NEXT_PUBLIC_BASE_URL` for absolute URL construction (verification links)
-- `GEOCODER_NOMINATIM_URL` for geocoding service endpoint (optional)
-- `GEOCODER_USER_AGENT` for Nominatim API requests (optional)
-- `GEOCODER_PROVIDER` for selecting geocoding service (defaults to 'nominatim')
-- `MAPBOX_TOKEN` for Mapbox geocoding (optional, if using Mapbox)
-- `NODE_ENV` for production/development conditional logic
-
-**Development Tools**:
-- TypeScript with strict mode enabled
-- ESLint with Next.js config
-- Path aliases (`@/*` mapping to `src/*`)
+- Tailwind CSS v4.
+- Google Fonts (Poppins).
+- Next.js Image component.

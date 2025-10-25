@@ -50,12 +50,28 @@ export async function GET() {
       return NextResponse.json({ items: [], count: 0 })
     }
 
-    // Fetch offer details with pending request counts
+    // Fetch offer details with accepted requests and opponent info
     const offers = await prisma.gameOffer.findMany({
       where: { id: { in: uniqueOfferIds } },
       include: {
         team: { include: { club: true } },
         ages: true,
+        requests: {
+          where: {
+            status: 'ACCEPTED',
+          },
+          include: {
+            requesterUser: {
+              include: {
+                team: {
+                  include: {
+                    club: true,
+                  },
+                },
+              },
+            },
+          },
+        },
         _count: {
           select: {
             requests: {
@@ -93,11 +109,25 @@ export async function GET() {
       const ageLabel = o.ages[0]?.ageGroup ?? (o as any).team?.ageGroup ?? null
       const strengthLabel = o.strength ? (STRENGTH_LABEL[o.strength] ?? o.strength) : null
 
+      // Get opponent info from accepted request
+      const acceptedRequest = o.requests?.[0]
+      const opponentTeam = acceptedRequest?.requesterUser?.team
+      const opponentClub = opponentTeam?.club
+      const isOwner = o.team?.contactUserId === userId
+
       return {
         id: o.id,
+        // Own team info
         clubName: club?.name ?? '—',
         ageLabel,
         year: (o as any).team?.year ?? null,
+        logoUrl: club?.logoUrl ?? null,
+        // Opponent team info
+        opponentClubName: opponentClub?.name ?? '—',
+        opponentAgeLabel: opponentTeam?.ageGroup ?? null,
+        opponentYear: opponentTeam?.year ?? null,
+        opponentLogoUrl: opponentClub?.logoUrl ?? null,
+        // Match details
         date: o.offerDate ? new Date(o.offerDate).toISOString().slice(0,10) : null,
         kickoffTime: o.kickoffTime ?? null,
         kickoffFlexible: !!o.kickoffFlexible,
@@ -106,8 +136,8 @@ export async function GET() {
         playTime: o.durationText ?? null,
         strengthLabel,
         address,
-        logoUrl: club?.logoUrl ?? null,
         pendingRequestCount: o._count?.requests ?? 0,
+        isOwner, // true if current user is the offer creator
       }
     })
 
