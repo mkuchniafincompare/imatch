@@ -165,6 +165,7 @@ export async function GET(req: Request) {
   // DB-Where
   const where: Prisma.GameOfferWhereInput = {
     status: 'OPEN',
+    isReserved: false, // Exclude reserved offers from search results
     ...(level ? { team: { level } } : {}),
     ...(agesArr ? { ages: { some: { ageGroup: { in: agesArr as any[] } } } } : {}),
     ...(homeAway ? { homeAway } : {}),

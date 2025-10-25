@@ -231,6 +231,7 @@ model GameOffer {
   radiusKm  Int         @default(30)
   notes     String?
   status    OfferStatus @default(OPEN)
+  isReserved Boolean    @default(false)
   createdAt DateTime    @default(now())
 
   team    Team    @relation(fields: [teamId], references: [id])

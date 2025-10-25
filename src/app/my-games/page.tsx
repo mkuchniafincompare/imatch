@@ -6,6 +6,7 @@ import MatchCard from '@/components/MatchCard'
 import ConfirmedMatchCard from '@/components/ConfirmedMatchCard'
 import Drawer from '@/components/Drawer'
 import ConfirmModal from '@/components/ConfirmModal'
+import EditOfferModal, { EditOfferData } from '@/components/EditOfferModal'
 
 type Tab = 'own' | 'saved' | 'requested' | 'confirmed'
 
@@ -53,6 +54,8 @@ export default function MyGamesPage() {
   const [loadingRequests, setLoadingRequests] = useState(false)
   const [withdrawModalOpen, setWithdrawModalOpen] = useState(false)
   const [offerIdToWithdraw, setOfferIdToWithdraw] = useState<string | null>(null)
+  const [editModalOpen, setEditModalOpen] = useState(false)
+  const [offerToEdit, setOfferToEdit] = useState<any | null>(null)
 
   useEffect(() => {
     fetchAllData()
@@ -273,6 +276,57 @@ export default function MyGamesPage() {
     }
   }
 
+  function handleEditOffer(offer: any) {
+    setOfferToEdit(offer)
+    setEditModalOpen(true)
+  }
+
+  async function handleSaveOffer(data: EditOfferData) {
+    if (!offerToEdit) return
+
+    try {
+      const res = await fetch('/api/offer/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          offerId: offerToEdit.id,
+          ...data,
+        }),
+      })
+
+      if (res.ok) {
+        // Refresh data and close modal
+        await fetchAllData()
+        setEditModalOpen(false)
+        setOfferToEdit(null)
+      }
+    } catch (e: any) {
+      console.error('Update offer failed:', e)
+    }
+  }
+
+  async function handleToggleReserved(offerId: string, currentReserved: boolean) {
+    try {
+      const res = await fetch('/api/offer/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          offerId,
+          isReserved: !currentReserved,
+        }),
+      })
+
+      if (res.ok) {
+        // Update local state
+        setOwnOffers(prev => prev.map(o => 
+          o.id === offerId ? { ...o, isReserved: !currentReserved } : o
+        ))
+      }
+    } catch (e: any) {
+      console.error('Toggle reserved failed:', e)
+    }
+  }
+
   // Filter: Wenn ein Spiel angefragt wurde, nicht mehr bei "Gemerkt" anzeigen
   const filteredSavedOffers = savedOffers.filter(offer => 
     !requestedOffers.some(req => req.id === offer.id)
@@ -403,18 +457,18 @@ export default function MyGamesPage() {
               {activeTab === 'confirmed' && 'Noch keine vereinbarten Spiele'}
             </div>
             <div className="text-white/60 text-sm">
-              {activeTab === 'own' && (
-                <a 
-                  href="/offer/new" 
-                  className="inline-block mt-2 px-4 py-2 bg-[#D04D2E] text-white rounded-lg hover:bg-[#B03D1E] transition font-medium"
-                >
-                  Spielangebot erstellen
-                </a>
-              )}
               {activeTab === 'saved' && 'Speichere interessante Angebote auf der "Matches"-Seite'}
               {activeTab === 'requested' && 'Sende deine erste Anfrage auf der "Matches"-Seite'}
               {activeTab === 'confirmed' && 'Akzeptiere Anfragen um Spiele zu vereinbaren'}
             </div>
+            {activeTab === 'own' && (
+              <a 
+                href="/offer/new" 
+                className="inline-block mt-4 px-6 py-3 bg-[#D04D2E] text-white rounded-lg hover:bg-[#B83D1E] transition font-semibold shadow-lg"
+              >
+                ➕ Spielangebot erstellen
+              </a>
+            )}
           </div>
         ) : (
           <div>
@@ -435,7 +489,7 @@ export default function MyGamesPage() {
                       year={offer.year}
                       logoUrl={offer.logoUrl}
                       opponentClubName={offer.opponentClubName || '—'}
-                      opponentAgeLabel={offer.opponentAgeLabel}
+                      opponentAgeLabel={offer.opponentAgeLabel || null}
                       opponentYear={offer.opponentYear}
                       opponentLogoUrl={offer.opponentLogoUrl}
                       date={offer.date}
@@ -450,7 +504,13 @@ export default function MyGamesPage() {
                       isOwner={offer.isOwner}
                     />
                   ) : (
-                    <MatchCard {...offer} ageLabel={offer.ageLabel || '—'} />
+                    <MatchCard 
+                      {...offer} 
+                      ageLabel={offer.ageLabel || '—'}
+                      isOwner={activeTab === 'own'}
+                      onEdit={activeTab === 'own' ? () => handleEditOffer(offer) : undefined}
+                      isReserved={offer.isReserved}
+                    />
                   )}
                   {activeTab === 'own' && (
                     <div className="px-3 pb-3 pt-2 border-t border-white/15 flex flex-wrap gap-2">
@@ -466,6 +526,22 @@ export default function MyGamesPage() {
                           <span className="font-medium">{offer.requestCount} × angefragt</span>
                         </div>
                       )}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleToggleReserved(offer.id, offer.isReserved || false)
+                        }}
+                        className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition ${
+                          offer.isReserved 
+                            ? 'bg-amber-500/30 text-amber-200 hover:bg-amber-500/40' 
+                            : 'bg-white/10 text-white/80 hover:bg-white/20'
+                        }`}
+                      >
+                        <span>{offer.isReserved ? '🔓' : '🔒'}</span>
+                        <span className="font-medium">
+                          {offer.isReserved ? 'Reservierung aufheben' : 'Reservieren'}
+                        </span>
+                      </button>
                     </div>
                     )}
                   {activeTab !== 'own' && activeTab !== 'confirmed' && (
@@ -589,6 +665,16 @@ export default function MyGamesPage() {
         confirmText="Ja"
         cancelText="Nein"
       />
+
+      {/* Edit Offer Modal */}
+      {offerToEdit && (
+        <EditOfferModal
+          open={editModalOpen}
+          onClose={() => setEditModalOpen(false)}
+          onSave={handleSaveOffer}
+          offer={offerToEdit}
+        />
+      )}
     </main>
   )
 }
