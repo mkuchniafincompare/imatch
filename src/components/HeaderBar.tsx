@@ -6,7 +6,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import Drawer from '@/components/Drawer'
 
-function useOnClickOutside(ref: React.RefObject<HTMLElement>, handler: () => void) {
+function useOnClickOutside(ref: React.RefObject<HTMLElement | null>, handler: () => void) {
   useEffect(() => {
     function listener(e: MouseEvent) {
       if (!ref.current || ref.current.contains(e.target as Node)) return
@@ -23,9 +23,15 @@ export default function HeaderBar() {
   const [openBell, setOpenBell] = useState(false)
   const [openChat, setOpenChat] = useState(false)
 
-  // Badge-Zahlen (Platzhalter; später vom Server/API befüllen)
-  const [unreadNotifs] = useState<number>(0)
-  const [unreadMessages] = useState<number>(0)
+  // Badge-Zahlen
+  const [unreadNotifs, setUnreadNotifs] = useState<number>(0)
+  const [unreadMessages, setUnreadMessages] = useState<number>(0)
+  
+  // Drawer-Inhalte
+  const [notifications, setNotifications] = useState<any[]>([])
+  const [messages, setMessages] = useState<any[]>([])
+  const [loadingNotifs, setLoadingNotifs] = useState(false)
+  const [loadingMsgs, setLoadingMsgs] = useState(false)
   
   // Club-Status für Warnungs-Badge
   const [hasClub, setHasClub] = useState<boolean | null>(null)
@@ -36,17 +42,29 @@ export default function HeaderBar() {
 
   useOnClickOutside(profileRef, () => setOpenProfile(false))
 
-  // Prüfe, ob User einen Club hat
+  // Fetch Badge Counts
   useEffect(() => {
     let alive = true
     ;(async () => {
       try {
-        const res = await fetch('/api/profile/affiliation', { cache: 'no-store' })
-        const data = await res.json().catch(() => ({}))
+        const [clubRes, notifsRes, msgsRes] = await Promise.all([
+          fetch('/api/profile/affiliation', { cache: 'no-store' }),
+          fetch('/api/notifications', { cache: 'no-store' }),
+          fetch('/api/messages', { cache: 'no-store' }),
+        ])
+        
         if (!alive) return
-        if (res.ok && data) {
-          setHasClub(!!data.club)
+        
+        const clubData = await clubRes.json().catch(() => ({}))
+        if (clubRes.ok && clubData) {
+          setHasClub(!!clubData.club)
         }
+
+        const notifsData = await notifsRes.json().catch(() => ({ unreadCount: 0 }))
+        setUnreadNotifs(notifsData.unreadCount || 0)
+
+        const msgsData = await msgsRes.json().catch(() => ({ unreadCount: 0 }))
+        setUnreadMessages(msgsData.unreadCount || 0)
       } catch {
         // Ignorieren - Badge wird nicht angezeigt bei Fehler
       }
@@ -55,6 +73,64 @@ export default function HeaderBar() {
       alive = false
     }
   }, [])
+
+  // Fetch Notifications when drawer opens
+  useEffect(() => {
+    if (!openBell) return
+    
+    setLoadingNotifs(true)
+    fetch('/api/notifications')
+      .then(res => res.json())
+      .then(data => {
+        setNotifications(data.items || [])
+        setUnreadNotifs(data.unreadCount || 0)
+      })
+      .catch(() => setNotifications([]))
+      .finally(() => setLoadingNotifs(false))
+  }, [openBell])
+
+  // Fetch Messages when drawer opens
+  useEffect(() => {
+    if (!openChat) return
+    
+    setLoadingMsgs(true)
+    fetch('/api/messages')
+      .then(res => res.json())
+      .then(data => {
+        setMessages(data.items || [])
+        setUnreadMessages(data.unreadCount || 0)
+      })
+      .catch(() => setMessages([]))
+      .finally(() => setLoadingMsgs(false))
+  }, [openChat])
+
+  async function markNotificationRead(id: string) {
+    try {
+      await fetch('/api/notifications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notificationId: id }),
+      })
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))
+      setUnreadNotifs(prev => Math.max(0, prev - 1))
+    } catch (e) {
+      console.error('Failed to mark notification as read:', e)
+    }
+  }
+
+  async function markMessageRead(id: string) {
+    try {
+      await fetch('/api/messages', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messageId: id }),
+      })
+      setMessages(prev => prev.map(m => m.id === id ? { ...m, read: true } : m))
+      setUnreadMessages(prev => Math.max(0, prev - 1))
+    } catch (e) {
+      console.error('Failed to mark message as read:', e)
+    }
+  }
 
   async function logout() {
     await fetch('/api/auth/logout', { method: 'POST' })
@@ -204,10 +280,34 @@ export default function HeaderBar() {
         title="Nachrichten"
         side="right"
       >
-        <div className="text-sm text-gray-700">
-          <p>Hier zeigen wir Nachrichten an. (MVP‑Platzhalter)</p>
-          <p className="mt-2 text-xs text-gray-500">Später: Konversationen, „alle gelesen", Deep‑Links.</p>
-        </div>
+        {loadingMsgs ? (
+          <div className="text-sm text-gray-700">Lade Nachrichten...</div>
+        ) : messages.length === 0 ? (
+          <div className="text-sm text-gray-700">Keine Nachrichten vorhanden.</div>
+        ) : (
+          <div className="space-y-3">
+            {messages.map((msg) => (
+              <div
+                key={msg.id}
+                onClick={() => !msg.read && markMessageRead(msg.id)}
+                className={`p-3 rounded-lg border cursor-pointer ${
+                  msg.read ? 'bg-white border-gray-200' : 'bg-blue-50 border-blue-300'
+                }`}
+              >
+                <div className="flex items-start justify-between mb-1">
+                  <div className="font-semibold text-sm text-gray-900">{msg.subject}</div>
+                  {!msg.read && (
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  )}
+                </div>
+                <div className="text-xs text-gray-700 line-clamp-2">{msg.message}</div>
+                <div className="text-xs text-gray-500 mt-1">
+                  {new Date(msg.createdAt).toLocaleDateString('de-DE')}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </Drawer>
 
       {/* Drawer: Benachrichtigungen */}
@@ -217,10 +317,34 @@ export default function HeaderBar() {
         title="Benachrichtigungen"
         side="right"
       >
-        <div className="text-sm text-gray-700">
-          <p>Hier zeigen wir Benachrichtigungen an. (MVP‑Platzhalter)</p>
-          <p className="mt-2 text-xs text-gray-500">Später: Liste, Aktionen, Deep‑Links.</p>
-        </div>
+        {loadingNotifs ? (
+          <div className="text-sm text-gray-700">Lade Benachrichtigungen...</div>
+        ) : notifications.length === 0 ? (
+          <div className="text-sm text-gray-700">Keine Benachrichtigungen vorhanden.</div>
+        ) : (
+          <div className="space-y-3">
+            {notifications.map((notif) => (
+              <div
+                key={notif.id}
+                onClick={() => !notif.read && markNotificationRead(notif.id)}
+                className={`p-3 rounded-lg border cursor-pointer ${
+                  notif.read ? 'bg-white border-gray-200' : 'bg-amber-50 border-amber-300'
+                }`}
+              >
+                <div className="flex items-start justify-between mb-1">
+                  <div className="font-semibold text-sm text-gray-900">{notif.title}</div>
+                  {!notif.read && (
+                    <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
+                  )}
+                </div>
+                <div className="text-xs text-gray-700">{notif.message}</div>
+                <div className="text-xs text-gray-500 mt-1">
+                  {new Date(notif.createdAt).toLocaleDateString('de-DE')}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </Drawer>
     </header>
   )

@@ -32,7 +32,7 @@ export async function GET() {
     })
 
     return NextResponse.json({
-      messages,
+      items: messages,
       unreadCount,
       count: messages.length,
     })

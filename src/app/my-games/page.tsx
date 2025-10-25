@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react'
 import BackgroundImage from '@/components/BackgroundImage'
 import MatchCard from '@/components/MatchCard'
+import Drawer from '@/components/Drawer'
 
-type Tab = 'own' | 'saved' | 'requested'
+type Tab = 'own' | 'saved' | 'requested' | 'confirmed'
 
 interface MatchItem {
   id: string
@@ -32,9 +33,15 @@ export default function MyGamesPage() {
   const [ownOffers, setOwnOffers] = useState<MatchItem[]>([])
   const [savedOffers, setSavedOffers] = useState<MatchItem[]>([])
   const [requestedOffers, setRequestedOffers] = useState<MatchItem[]>([])
+  const [confirmedOffers, setConfirmedOffers] = useState<MatchItem[]>([])
 
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
   const [requestedIds, setRequestedIds] = useState<Set<string>>(new Set())
+
+  const [requestDrawerOpen, setRequestDrawerOpen] = useState(false)
+  const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null)
+  const [offerRequests, setOfferRequests] = useState<any[]>([])
+  const [loadingRequests, setLoadingRequests] = useState(false)
 
   useEffect(() => {
     fetchAllData()
@@ -48,6 +55,7 @@ export default function MyGamesPage() {
         fetchOwnOffers(),
         fetchSavedOffers(),
         fetchRequestedOffers(),
+        fetchConfirmedOffers(),
       ])
     } catch (e: any) {
       setError(e?.message ?? 'Fehler beim Laden')
@@ -97,6 +105,61 @@ export default function MyGamesPage() {
     if (!offers.ok) throw new Error('Angebotsdaten konnten nicht geladen werden')
     const offersData = await offers.json()
     setRequestedOffers(offersData.items || [])
+  }
+
+  async function fetchConfirmedOffers() {
+    try {
+      const res = await fetch('/api/requests/confirmed')
+      if (!res.ok) throw new Error('Vereinbarte Spiele konnten nicht geladen werden')
+      const data = await res.json()
+      setConfirmedOffers(data.items || [])
+    } catch (e) {
+      console.error('Confirmed offers fetch failed:', e)
+      setConfirmedOffers([])
+    }
+  }
+
+  async function openRequestsDrawer(offerId: string) {
+    setSelectedOfferId(offerId)
+    setRequestDrawerOpen(true)
+    setLoadingRequests(true)
+    
+    try {
+      const res = await fetch(`/api/requests/${offerId}`)
+      if (!res.ok) throw new Error('Anfragen konnten nicht geladen werden')
+      const data = await res.json()
+      setOfferRequests(data.requests || [])
+    } catch (e: any) {
+      console.error('Failed to load requests:', e)
+      setOfferRequests([])
+    } finally {
+      setLoadingRequests(false)
+    }
+  }
+
+  async function handleRespondToRequest(requesterId: string, action: 'accept' | 'reject') {
+    if (!selectedOfferId) return
+
+    try {
+      const res = await fetch(`/api/requests/${selectedOfferId}/respond`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requesterId, action }),
+      })
+
+      if (!res.ok) {
+        const error = await res.json()
+        alert(error.error || 'Fehler beim Bearbeiten der Anfrage')
+        return
+      }
+
+      // Refresh requests
+      await openRequestsDrawer(selectedOfferId)
+      await fetchAllData()
+    } catch (e: any) {
+      console.error('Respond failed:', e)
+      alert('Fehler beim Bearbeiten der Anfrage')
+    }
   }
 
   async function handleSave(offerId: string) {
@@ -170,7 +233,8 @@ export default function MyGamesPage() {
   const currentOffers = 
     activeTab === 'own' ? ownOffers :
     activeTab === 'saved' ? savedOffers :
-    requestedOffers
+    activeTab === 'requested' ? requestedOffers :
+    confirmedOffers
 
   const tabConfig: Record<Tab, { label: string; icon: string; color: string; bgColor: string }> = {
     own: { 
@@ -190,6 +254,12 @@ export default function MyGamesPage() {
       icon: '✉️', 
       color: 'text-blue-500',
       bgColor: 'bg-blue-500'
+    },
+    confirmed: {
+      label: 'Vereinbart',
+      icon: '✓',
+      color: 'text-green-500',
+      bgColor: 'bg-green-500'
     },
   }
 
@@ -217,9 +287,9 @@ export default function MyGamesPage() {
 
         {/* Tab Navigation mit glassmorphism */}
         <div className="glass-card mb-6 p-1 rounded-2xl">
-          <div className="grid grid-cols-3 gap-1">
+          <div className="grid grid-cols-4 gap-1">
             {(Object.entries(tabConfig) as [Tab, typeof tabConfig[Tab]][]).map(([key, config]) => {
-              const count = key === 'own' ? ownOffers.length : key === 'saved' ? savedOffers.length : requestedOffers.length
+              const count = key === 'own' ? ownOffers.length : key === 'saved' ? savedOffers.length : key === 'requested' ? requestedOffers.length : confirmedOffers.length
               return (
                 <button
                   key={key}
@@ -296,7 +366,8 @@ export default function MyGamesPage() {
               return (
                 <div 
                   key={offer.id} 
-                  className={`glass-card overflow-hidden ${hasRequests ? 'ring-2 ring-orange-500' : ''}`}
+                  className={`glass-card overflow-hidden ${hasRequests ? 'ring-2 ring-orange-500 cursor-pointer' : ''}`}
+                  onClick={() => hasRequests ? openRequestsDrawer(offer.id) : null}
                 >
                   <MatchCard {...offer} ageLabel={offer.ageLabel || '—'} />
                   {activeTab === 'own' && (
@@ -349,6 +420,68 @@ export default function MyGamesPage() {
           </div>
         )}
       </div>
+
+      {/* Request Details Drawer */}
+      <Drawer
+        open={requestDrawerOpen}
+        onClose={() => setRequestDrawerOpen(false)}
+        title="Anfragen für dieses Angebot"
+        side="right"
+      >
+        {loadingRequests ? (
+          <div className="text-sm text-gray-700">Lade Anfragen...</div>
+        ) : offerRequests.length === 0 ? (
+          <div className="text-sm text-gray-700">Keine Anfragen vorhanden.</div>
+        ) : (
+          <div className="space-y-4">
+            {offerRequests.map((req) => (
+              <div key={req.requesterId} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <div className="font-semibold text-gray-900">{req.requesterName}</div>
+                    <div className="text-sm text-gray-600">{req.clubName}</div>
+                    {req.teamAgeGroup && (
+                      <div className="text-xs text-gray-500">{req.teamAgeGroup}</div>
+                    )}
+                  </div>
+                  <div className={`text-xs px-2 py-1 rounded ${
+                    req.status === 'ACCEPTED' ? 'bg-green-100 text-green-800' :
+                    req.status === 'REJECTED' ? 'bg-red-100 text-red-800' :
+                    'bg-yellow-100 text-yellow-800'
+                  }`}>
+                    {req.status === 'ACCEPTED' ? 'Akzeptiert' :
+                     req.status === 'REJECTED' ? 'Abgelehnt' :
+                     'Ausstehend'}
+                  </div>
+                </div>
+                
+                {req.message && (
+                  <div className="text-sm text-gray-700 mb-3 p-2 bg-white rounded border border-gray-100">
+                    {req.message}
+                  </div>
+                )}
+
+                {req.status === 'PENDING' && (
+                  <div className="flex gap-2 mt-3">
+                    <button
+                      onClick={() => handleRespondToRequest(req.requesterId, 'accept')}
+                      className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium"
+                    >
+                      Akzeptieren
+                    </button>
+                    <button
+                      onClick={() => handleRespondToRequest(req.requesterId, 'reject')}
+                      className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium"
+                    >
+                      Ablehnen
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </Drawer>
     </main>
   )
 }

@@ -22,7 +22,7 @@ export async function GET() {
     })
 
     return NextResponse.json({
-      notifications,
+      items: notifications,
       unreadCount,
       count: notifications.length,
     })
