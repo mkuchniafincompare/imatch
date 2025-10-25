@@ -358,19 +358,29 @@ export default function MyGamesPage() {
               {tabConfig[activeTab].icon}
             </div>
             <div className="text-white/90 font-medium mb-2">
-              {activeTab === 'own' && 'Noch keine Angebote erstellt'}
+              {activeTab === 'own' && 'Keine offenen Spielangebote erstellt'}
               {activeTab === 'saved' && 'Noch keine Angebote gemerkt'}
               {activeTab === 'requested' && 'Noch keine Anfragen verschickt'}
+              {activeTab === 'confirmed' && 'Noch keine vereinbarten Spiele'}
             </div>
             <div className="text-white/60 text-sm">
-              {activeTab === 'own' && 'Erstelle dein erstes Angebot über "Anbieten"'}
+              {activeTab === 'own' && (
+                <a 
+                  href="/offer/new" 
+                  className="inline-block mt-2 px-4 py-2 bg-[#D04D2E] text-white rounded-lg hover:bg-[#B03D1E] transition font-medium"
+                >
+                  Spielangebot erstellen
+                </a>
+              )}
               {activeTab === 'saved' && 'Speichere interessante Angebote auf der "Matches"-Seite'}
               {activeTab === 'requested' && 'Sende deine erste Anfrage auf der "Matches"-Seite'}
+              {activeTab === 'confirmed' && 'Akzeptiere Anfragen um Spiele zu vereinbaren'}
             </div>
           </div>
         ) : (
-          <div className="space-y-4">
-            {currentOffers.map(offer => {
+          <div>
+            <div className="space-y-4">
+              {currentOffers.map(offer => {
               const hasRequests = activeTab === 'own' && offer.requestCount && offer.requestCount > 0
               return (
                 <div 
@@ -434,7 +444,21 @@ export default function MyGamesPage() {
                   )}
                 </div>
               )
-            })}
+              })}
+            </div>
+            
+            {/* Button "Spielangebot erstellen" bei Tab "Meine Angebote" */}
+            {activeTab === 'own' && (
+              <div className="mt-6">
+                <a 
+                  href="/offer/new"
+                  className="block w-full glass-card rounded-2xl px-4 py-4 text-center text-white font-medium hover:bg-white/10 transition"
+                >
+                  <span className="text-lg mr-2">➕</span>
+                  Spielangebot erstellen
+                </a>
+              </div>
+            )}
           </div>
         )}
       </div>

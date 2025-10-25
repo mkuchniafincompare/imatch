@@ -6,6 +6,25 @@ Built with Next.js (App Router), React 19, Prisma ORM, and Tailwind CSS v4. The 
 
 ## Recent Changes (October 25, 2025)
 
+**UI/UX Improvements - Offer Management Streamlining**:
+- Redesigned "Meine Angebote" tab workflow:
+  - Vereinbarte Spiele (with ACCEPTED requests) automatically removed from "Meine Angebote" tab
+  - Changed empty state text: "Keine offenen Spielangebote erstellt" (was: "Noch keine Angebote erstellt")
+  - Empty state now shows prominent "Spielangebot erstellen" button linking to `/offer/new`
+  - Added permanent "Spielangebot erstellen" button at bottom of offer list (always visible when tab active)
+- "Vereinbart" tab enhancements:
+  - Shows pending request counter for confirmed matches: "⏳ X Anfrage(n) offen" (yellow badge)
+  - Only counts requests with status PENDING (excludes rejected/accepted)
+  - API route `/api/requests/confirmed` includes `_count` for pending requests
+- Match visibility improvements:
+  - Confirmed matches (offers with ACCEPTED requests) hidden from `/matches` search results
+  - Prevents double-booking and confusion for other users
+  - Filter applied in `/api/offer` route via Prisma query: `requests: { none: { status: 'ACCEPTED' } }`
+- Navigation simplification:
+  - Removed "Anbieten" (➕) from bottom navigation bar
+  - Bottom navigation now has 2 tabs instead of 3: "Meine Spiele" (🎮) and "Matches" (⚽)
+  - Offer creation now exclusively accessible via "Meine Angebote" tab
+
 **Comprehensive Request Management System** (COMPLETED):
 - Implemented complete multi-channel notification system for match requests:
   - **Database Schema**: Added `Notification` and `InboxMessage` models for app-internal messaging (Prisma client regenerated)

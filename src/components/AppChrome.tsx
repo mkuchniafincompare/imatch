@@ -36,14 +36,10 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
           className="fixed bottom-0 inset-x-0 z-40 border-t bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/70"
           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }} // iOS safe area
         >
-          <div className="mx-auto max-w-screen-sm grid grid-cols-3 text-xs h-16">
+          <div className="mx-auto max-w-screen-sm grid grid-cols-2 text-xs h-16">
             <Link href="/my-games" className="flex flex-col items-center justify-center">
               <div>🎮</div>
               <div>Meine Spiele</div>
-            </Link>
-            <Link href="/offer/new" className="flex flex-col items-center justify-center">
-              <div>➕</div>
-              <div>Anbieten</div>
             </Link>
             <Link href="/matches" className="flex flex-col items-center justify-center font-semibold">
               <div>⚽</div>
