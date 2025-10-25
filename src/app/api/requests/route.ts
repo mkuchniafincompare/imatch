@@ -128,23 +128,22 @@ export async function POST(req: Request) {
         },
       }).catch(() => null)
 
-      // 3) Email
+      // 3) Email - silently fail if email not configured
       const targetEmail = offer.team?.contactUser?.email
       if (targetEmail) {
-        try {
-          await sendEmail({
-            to: targetEmail,
-            subject: `iMatch: Neue Anfrage für ${clubName} ${ageLabel}`,
-            text: `Hallo ${offer.team?.contactUser?.firstName},\n\n${requester.firstName} ${requester.lastName} (${requester.email}) hat dein Spielangebot angefragt:\n\nVerein: ${clubName}\nAltersklasse: ${ageLabel}\nDatum: ${offerDate}\n\n${message ? `Nachricht: ${message}\n\n` : ''}Melde dich in iMatch an, um die Anfrage zu bearbeiten.\n\nViele Grüße,\niMatch Team`,
-          })
-        } catch (emailError) {
-          console.error('Email sending failed:', emailError)
-        }
+        sendEmail({
+          to: targetEmail,
+          subject: `iMatch: Neue Anfrage für ${clubName} ${ageLabel}`,
+          text: `Hallo ${offer.team?.contactUser?.firstName},\n\n${requester.firstName} ${requester.lastName} (${requester.email}) hat dein Spielangebot angefragt:\n\nVerein: ${clubName}\nAltersklasse: ${ageLabel}\nDatum: ${offerDate}\n\n${message ? `Nachricht: ${message}\n\n` : ''}Melde dich in iMatch an, um die Anfrage zu bearbeiten.\n\nViele Grüße,\niMatch Team`,
+        }).catch((err) => {
+          console.log('Email not sent (mail not configured):', err.message)
+        })
       }
     }
 
     return NextResponse.json({ ok: true }, { status: isNewRequest ? 201 : 200 })
   } catch (e: any) {
+    console.error('POST /api/requests error:', e)
     return NextResponse.json({ error: e?.message ?? 'Serverfehler' }, { status: 500 })
   }
 }
