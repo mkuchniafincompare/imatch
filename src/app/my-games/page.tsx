@@ -507,41 +507,58 @@ export default function MyGamesPage() {
                     <MatchCard 
                       {...offer} 
                       ageLabel={offer.ageLabel || '—'}
-                      isOwner={activeTab === 'own'}
-                      onEdit={activeTab === 'own' ? () => handleEditOffer(offer) : undefined}
+                      isOwner={false}
                       isReserved={offer.isReserved}
                     />
                   )}
                   {activeTab === 'own' && (
-                    <div className="px-3 pb-3 pt-2 border-t border-white/15 flex flex-wrap gap-2">
-                      {offer.savedCount !== undefined && offer.savedCount > 0 && (
-                        <div className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm bg-green-500/20 text-green-200">
-                          <span>⭐</span>
-                          <span className="font-medium">{offer.savedCount} × gemerkt</span>
+                    <div className="px-3 pb-3 pt-2 border-t border-white/15">
+                      {/* Badges Zeile */}
+                      {(offer.savedCount > 0 || offer.requestCount > 0) && (
+                        <div className="flex flex-wrap gap-2 mb-2">
+                          {offer.savedCount !== undefined && offer.savedCount > 0 && (
+                            <div className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm bg-green-500/20 text-green-200">
+                              <span>⭐</span>
+                              <span className="font-medium">{offer.savedCount} × gemerkt</span>
+                            </div>
+                          )}
+                          {offer.requestCount !== undefined && offer.requestCount > 0 && (
+                            <div className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm bg-orange-500/20 text-orange-200">
+                              <span>✉️</span>
+                              <span className="font-medium">{offer.requestCount} × angefragt</span>
+                            </div>
+                          )}
                         </div>
                       )}
-                      {offer.requestCount !== undefined && offer.requestCount > 0 && (
-                        <div className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm bg-orange-500/20 text-orange-200">
-                          <span>✉️</span>
-                          <span className="font-medium">{offer.requestCount} × angefragt</span>
-                        </div>
-                      )}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleToggleReserved(offer.id, offer.isReserved || false)
-                        }}
-                        className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition ${
-                          offer.isReserved 
-                            ? 'bg-amber-500/30 text-amber-200 hover:bg-amber-500/40' 
-                            : 'bg-white/10 text-white/80 hover:bg-white/20'
-                        }`}
-                      >
-                        <span>{offer.isReserved ? '🔓' : '🔒'}</span>
-                        <span className="font-medium">
-                          {offer.isReserved ? 'Reservierung aufheben' : 'Reservieren'}
-                        </span>
-                      </button>
+                      {/* Aktions-Buttons Zeile */}
+                      <div className="flex items-center justify-between gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleToggleReserved(offer.id, offer.isReserved || false)
+                          }}
+                          className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition ${
+                            offer.isReserved 
+                              ? 'bg-amber-500/30 text-amber-200 hover:bg-amber-500/40' 
+                              : 'bg-white/10 text-white/80 hover:bg-white/20'
+                          }`}
+                        >
+                          <span>{offer.isReserved ? '🔓' : '🔒'}</span>
+                          <span className="font-medium">
+                            {offer.isReserved ? 'Reservierung aufheben' : 'Reservieren'}
+                          </span>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleEditOffer(offer)
+                          }}
+                          className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm bg-white/10 text-white/80 hover:bg-white/20 transition"
+                        >
+                          <span>✏️</span>
+                          <span className="font-medium">Bearbeiten</span>
+                        </button>
+                      </div>
                     </div>
                     )}
                   {activeTab !== 'own' && activeTab !== 'confirmed' && (
