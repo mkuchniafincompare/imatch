@@ -11,7 +11,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Nicht eingeloggt' }, { status: 401 })
     }
 
-    const messages = await prisma.inboxMessage.findMany({
+    const messages = await prisma.InboxMessage.findMany({
       where: { toUserId: userId },
       include: {
         sender: {
@@ -27,7 +27,7 @@ export async function GET() {
       take: 50,
     })
 
-    const unreadCount = await prisma.inboxMessage.count({
+    const unreadCount = await prisma.InboxMessage.count({
       where: { toUserId: userId, read: false },
     })
 
@@ -56,7 +56,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'toUserId, subject und message sind erforderlich' }, { status: 400 })
     }
 
-    const newMessage = await prisma.inboxMessage.create({
+    const newMessage = await prisma.InboxMessage.create({
       data: {
         fromUserId: userId,
         toUserId,
@@ -85,7 +85,7 @@ export async function PATCH(req: Request) {
     const { messageId, markAllAsRead } = body
 
     if (markAllAsRead) {
-      await prisma.inboxMessage.updateMany({
+      await prisma.InboxMessage.updateMany({
         where: { toUserId: userId, read: false },
         data: { read: true },
       })
@@ -93,7 +93,7 @@ export async function PATCH(req: Request) {
     }
 
     if (messageId) {
-      await prisma.inboxMessage.updateMany({
+      await prisma.InboxMessage.updateMany({
         where: { id: messageId, toUserId: userId },
         data: { read: true },
       })

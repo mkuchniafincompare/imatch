@@ -11,13 +11,13 @@ export async function GET() {
       return NextResponse.json({ error: 'Nicht eingeloggt' }, { status: 401 })
     }
 
-    const notifications = await prisma.notification.findMany({
+    const notifications = await prisma.Notification.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
       take: 50,
     })
 
-    const unreadCount = await prisma.notification.count({
+    const unreadCount = await prisma.Notification.count({
       where: { userId, read: false },
     })
 
@@ -46,7 +46,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Fehlende Parameter' }, { status: 400 })
     }
 
-    const notification = await prisma.notification.create({
+    const notification = await prisma.Notification.create({
       data: {
         userId: targetUserId,
         type,
@@ -75,7 +75,7 @@ export async function PATCH(req: Request) {
     const { notificationId, markAllAsRead } = body
 
     if (markAllAsRead) {
-      await prisma.notification.updateMany({
+      await prisma.Notification.updateMany({
         where: { userId, read: false },
         data: { read: true },
       })
@@ -83,7 +83,7 @@ export async function PATCH(req: Request) {
     }
 
     if (notificationId) {
-      await prisma.notification.updateMany({
+      await prisma.Notification.updateMany({
         where: { id: notificationId, userId },
         data: { read: true },
       })
