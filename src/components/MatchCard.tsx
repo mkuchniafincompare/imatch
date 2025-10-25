@@ -45,26 +45,6 @@ export default function MatchCard({
   return (
     // Kein fester Hintergrund hier, damit der "Glass"-Wrapper der Seite wirkt
     <div className="relative overflow-hidden rounded-2xl px-3 py-3">
-      {/* Edit Icon (nur für Owner) */}
-      {isOwner && onEdit && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            onEdit()
-          }}
-          className="absolute left-3 top-3 w-8 h-8 rounded-lg bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/25 flex items-center justify-center transition z-10"
-          title="Angebot bearbeiten"
-        >
-          <span className="text-white text-lg">✏️</span>
-        </button>
-      )}
-      
-      {/* Reserved Badge */}
-      {isReserved && (
-        <div className="absolute left-3 top-14 px-2 py-1 rounded-lg bg-amber-500/90 text-white text-[10px] font-semibold backdrop-blur-md border border-amber-400/50">
-          Reserviert
-        </div>
-      )}
       
       {/* Rechts: Logo */}
       <div className="absolute right-3 top-3 w-12 h-12 rounded-md overflow-hidden border border-white/25 bg-white/15 backdrop-blur-[1px] grid place-items-center">

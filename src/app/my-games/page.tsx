@@ -6,7 +6,6 @@ import MatchCard from '@/components/MatchCard'
 import ConfirmedMatchCard from '@/components/ConfirmedMatchCard'
 import Drawer from '@/components/Drawer'
 import ConfirmModal from '@/components/ConfirmModal'
-import EditOfferModal, { EditOfferData } from '@/components/EditOfferModal'
 
 type Tab = 'own' | 'saved' | 'requested' | 'confirmed'
 
@@ -54,8 +53,6 @@ export default function MyGamesPage() {
   const [loadingRequests, setLoadingRequests] = useState(false)
   const [withdrawModalOpen, setWithdrawModalOpen] = useState(false)
   const [offerIdToWithdraw, setOfferIdToWithdraw] = useState<string | null>(null)
-  const [editModalOpen, setEditModalOpen] = useState(false)
-  const [offerToEdit, setOfferToEdit] = useState<any | null>(null)
 
   useEffect(() => {
     fetchAllData()
@@ -129,11 +126,12 @@ export default function MyGamesPage() {
         return
       }
       const text = await res.text()
-      if (!text) {
+      const trimmed = text.trim()
+      if (!trimmed) {
         setConfirmedOffers([])
         return
       }
-      const data = JSON.parse(text)
+      const data = JSON.parse(trimmed)
       setConfirmedOffers(data.items || [])
     } catch (e) {
       console.error('Confirmed offers fetch failed:', e)
@@ -273,35 +271,6 @@ export default function MyGamesPage() {
       }
     } catch (e: any) {
       console.error('Withdraw request failed:', e)
-    }
-  }
-
-  function handleEditOffer(offer: any) {
-    setOfferToEdit(offer)
-    setEditModalOpen(true)
-  }
-
-  async function handleSaveOffer(data: EditOfferData) {
-    if (!offerToEdit) return
-
-    try {
-      const res = await fetch('/api/offer/update', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          offerId: offerToEdit.id,
-          ...data,
-        }),
-      })
-
-      if (res.ok) {
-        // Refresh data and close modal
-        await fetchAllData()
-        setEditModalOpen(false)
-        setOfferToEdit(null)
-      }
-    } catch (e: any) {
-      console.error('Update offer failed:', e)
     }
   }
 
@@ -543,21 +512,21 @@ export default function MyGamesPage() {
                               : 'bg-white/10 text-white/80 hover:bg-white/20'
                           }`}
                         >
-                          <span>{offer.isReserved ? '🔓' : '🔒'}</span>
+                          <span>{offer.isReserved ? '🔒' : '🔓'}</span>
                           <span className="font-medium">
-                            {offer.isReserved ? 'Reservierung aufheben' : 'Reservieren'}
+                            {offer.isReserved ? 'Reserviert' : 'Reservieren'}
                           </span>
                         </button>
-                        <button
+                        <a
+                          href={`/offer/edit/${offer.id}`}
                           onClick={(e) => {
                             e.stopPropagation()
-                            handleEditOffer(offer)
                           }}
                           className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm bg-white/10 text-white/80 hover:bg-white/20 transition"
                         >
                           <span>✏️</span>
                           <span className="font-medium">Bearbeiten</span>
-                        </button>
+                        </a>
                       </div>
                     </div>
                     )}
@@ -682,16 +651,6 @@ export default function MyGamesPage() {
         confirmText="Ja"
         cancelText="Nein"
       />
-
-      {/* Edit Offer Modal */}
-      {offerToEdit && (
-        <EditOfferModal
-          open={editModalOpen}
-          onClose={() => setEditModalOpen(false)}
-          onSave={handleSaveOffer}
-          offer={offerToEdit}
-        />
-      )}
     </main>
   )
 }
