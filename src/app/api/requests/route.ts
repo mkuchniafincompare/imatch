@@ -103,7 +103,7 @@ export async function POST(req: Request) {
       const offerDate = offer.offerDate ? new Date(offer.offerDate).toLocaleDateString('de-DE') : '—'
       
       // 1) Notification
-      await prisma.Notification.create({
+      await prisma.notification.create({
         data: {
           userId: targetUserId,
           type: 'REQUEST_RECEIVED',
@@ -115,7 +115,7 @@ export async function POST(req: Request) {
       }).catch(() => null)
 
       // 2) InboxMessage
-      await prisma.InboxMessage.create({
+      await prisma.inboxMessage.create({
         data: {
           fromUserId: userId,
           toUserId: targetUserId,

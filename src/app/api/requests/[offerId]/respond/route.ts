@@ -105,7 +105,7 @@ export async function PATCH(
 
     if (action === 'accept') {
       // 1) Notification
-      await prisma.Notification.create({
+      await prisma.notification.create({
         data: {
           userId: requesterId,
           type: 'REQUEST_ACCEPTED',
@@ -117,7 +117,7 @@ export async function PATCH(
       }).catch(() => null)
 
       // 2) InboxMessage
-      await prisma.InboxMessage.create({
+      await prisma.inboxMessage.create({
         data: {
           fromUserId: userId,
           toUserId: requesterId,
@@ -143,7 +143,7 @@ export async function PATCH(
     } else {
       // REJECT
       // 1) Notification
-      await prisma.Notification.create({
+      await prisma.notification.create({
         data: {
           userId: requesterId,
           type: 'REQUEST_REJECTED',
@@ -155,7 +155,7 @@ export async function PATCH(
       }).catch(() => null)
 
       // 2) InboxMessage
-      await prisma.InboxMessage.create({
+      await prisma.inboxMessage.create({
         data: {
           fromUserId: userId,
           toUserId: requesterId,
