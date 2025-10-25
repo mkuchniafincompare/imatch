@@ -86,9 +86,9 @@ async function geocodeMapbox(input: { zip?: string | null; city?: string | null;
 }
 
 export async function geocode(input: GeocodeInput, opts: GeocodeOptions = {}): Promise<GeocodeResult | null> {
-  const zip = normalize(input.zip)
-  const city = normalize(input.city)
-  const street = normalize(input.street)
+  const zip = normalize(input.zip) || ''
+  const city = normalize(input.city) || ''
+  const street = normalize(input.street) || ''
 
   // If we have nothing meaningful, bail quickly
   if (!zip && !city && !street) return null

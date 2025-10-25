@@ -1,6 +1,7 @@
 // src/app/api/offer/route.ts
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { geocode } from '@/lib/geocode'
 import type { Prisma } from '@prisma/client'
 
 // Session aus Cookie lesen (mm_session = "uid:<userId>")
@@ -139,40 +140,18 @@ export async function GET(req: Request) {
   const timeFrom = searchParams.get('timeFrom') // "HH:mm"
   const timeTo   = searchParams.get('timeTo')   // "HH:mm"
 
-  // Mini-Geocoder (MVP) PLZ/Ort → grobe Koordinaten
-  function geoFromZipCity(zip?: string|null, cty?: string|null): {lat:number,lng:number}|null {
-    const z = (zip || '').trim()
-    const t = (cty || '').trim().toLowerCase()
-    // City name overrides
-    if (t.includes('berlin')) return { lat: 52.52, lng: 13.405 }
-    if (t.includes('potsdam')) return { lat: 52.4, lng: 13.05 }
-    if (t.includes('münchen') || t.includes('munchen') || t.includes('munich')) return { lat: 48.137, lng: 11.575 }
-    if (t.includes('hamburg')) return { lat: 53.551, lng: 9.993 }
-    if (t.includes('köln') || t.includes('cologne')) return { lat: 50.938, lng: 6.96 }
-    if (t.includes('frankfurt')) return { lat: 50.1109, lng: 8.6821 }
-    if (t.includes('stuttgart')) return { lat: 48.775, lng: 9.182 }
-    if (t.includes('düsseldorf') || t.includes('duesseldorf')) return { lat: 51.2277, lng: 6.773 }
-    if (t.includes('leipzig')) return { lat: 51.3397, lng: 12.3731 }
-    if (t.includes('nürnberg') || t.includes('nuernberg') || t.includes('nuremberg')) return { lat: 49.454, lng: 11.077 }
-    if (t.includes('hannover')) return { lat: 52.375, lng: 9.732 }
-    if (t.includes('dresden')) return { lat: 51.050, lng: 13.737 }
-
-    // PLZ prefix mapping (rough centroids)
-    if (/^(10|11|12|13|14)/.test(z)) return { lat: 52.52, lng: 13.405 } // Berlin
-    if (/^144/.test(z)) return { lat: 52.4, lng: 13.05 } // Potsdam
-    if (/^(80|81)/.test(z)) return { lat: 48.137, lng: 11.575 } // München
-    if (/^(20|21|22)/.test(z)) return { lat: 53.551, lng: 9.993 } // Hamburg
-    if (/^50/.test(z)) return { lat: 50.938, lng: 6.96 } // Köln
-    if (/^60/.test(z)) return { lat: 50.1109, lng: 8.6821 } // Frankfurt
-    if (/^(70|71)/.test(z)) return { lat: 48.775, lng: 9.182 } // Stuttgart
-    if (/^40/.test(z)) return { lat: 51.2277, lng: 6.773 } // Düsseldorf
-    if (/^04/.test(z)) return { lat: 51.3397, lng: 12.3731 } // Leipzig
-    if (/^90/.test(z)) return { lat: 49.454, lng: 11.077 } // Nürnberg
-    if (/^30/.test(z)) return { lat: 52.375, lng: 9.732 } // Hannover
-    if (/^01/.test(z)) return { lat: 51.050, lng: 13.737 } // Dresden
-    return null
+  // Geocode user's location using real geocoding service
+  let geo: { lat: number; lng: number } | null = null
+  if (zipcode || city) {
+    try {
+      const result = await geocode({ zip: zipcode, city, street: null })
+      if (result) {
+        geo = { lat: result.lat, lng: result.lng }
+      }
+    } catch (e) {
+      console.error('Geocoding failed for user location:', e)
+    }
   }
-  const geo = geoFromZipCity(zipcode, city)
 
   // Enum-Order für Stärke-Spanne
   const STRENGTH_ORDER = [
@@ -264,14 +243,13 @@ export async function GET(req: Request) {
     .map(o => {
       let distanceKm: number | null = null
       if (geo) {
+        // Prioritize: 1) Offer's own coordinates, 2) Club's coordinates from DB
         let base: { lat: number; lng: number } | null = null
         if (o.lat != null && o.lng != null) {
           base = { lat: o.lat, lng: o.lng }
-        } else {
-          const cz = (o.team?.club as any)?.zip ?? null
-          const cc = (o.team?.club as any)?.city ?? null
-          const g2 = geoFromZipCity(cz, cc)
-          if (g2) base = g2
+        } else if (o.team?.club?.lat != null && o.team?.club?.lng != null) {
+          // Use club's real geocoded coordinates from database
+          base = { lat: o.team.club.lat, lng: o.team.club.lng }
         }
         if (base) {
           distanceKm = haversineKm(geo.lat, geo.lng, base.lat, base.lng)
