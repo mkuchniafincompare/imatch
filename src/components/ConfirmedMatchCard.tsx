@@ -105,11 +105,6 @@ export default function ConfirmedMatchCard({
 
         <span aria-hidden>⏰</span>
         <span>{timeFmt}</span>
-        {kickoffFlexible && (
-          <span className="inline-block rounded-full border border-white/25 bg-white/10 text-white/90 text-[11px] px-2 py-[2px] backdrop-blur-[1px]">
-            flexibel
-          </span>
-        )}
 
         {playTime && (
           <>
@@ -119,35 +114,13 @@ export default function ConfirmedMatchCard({
         )}
       </div>
 
-      {/* Location & Strength */}
-      <div className="mt-2 flex items-center justify-between text-[12px] text-white/90">
-        <div className="flex items-center gap-2">
-          {homeAway === 'HOME' && (
-            <span className="inline-block rounded-full border border-white/25 bg-white/10 text-white/90 text-[11px] px-2 py-[2px] backdrop-blur-[1px]">
-              Heim
-            </span>
-          )}
-          {homeAway === 'AWAY' && (
-            <span className="inline-block rounded-full border border-white/25 bg-white/10 text-white/90 text-[11px] px-2 py-[2px] backdrop-blur-[1px]">
-              Auswärts
-            </span>
-          )}
-          {homeAway === 'FLEX' && (
-            <span className="inline-block rounded-full border border-white/25 bg-white/10 text-white/90 text-[11px] px-2 py-[2px] backdrop-blur-[1px]">
-              Heim / Auswärts
-            </span>
-          )}
-          {strengthLabel && (
-            <span className="inline-block rounded-full border border-white/25 bg-white/10 text-white/90 text-[11px] px-2 py-[2px] backdrop-blur-[1px]">
-              {strengthLabel}
-            </span>
-          )}
+      {/* Location */}
+      {address && (
+        <div className="mt-3 flex items-start gap-2 text-[12px] text-white/90">
+          <span aria-hidden className="flex-shrink-0">📍</span>
+          <span className="leading-snug">{address}</span>
         </div>
-        <div className="flex items-center gap-1 max-w-[50%] text-right">
-          <span aria-hidden>📍</span>
-          <span className="truncate">{address || '—'}</span>
-        </div>
-      </div>
+      )}
 
       {/* Notes */}
       {notes && (
