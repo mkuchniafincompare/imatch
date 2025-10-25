@@ -27,11 +27,11 @@ Preferred communication style: Simple, everyday language.
 
 ## System Design Choices
 
-- **Offer Management**: Streamlined workflow for managing offers, including automatic removal of accepted offers from "Meine Angebote" and a dedicated "Vereinbart" tab for confirmed matches. VS-style display for confirmed matches.
-- **Request Management**: Comprehensive system with multi-channel notifications (in-app notifications, inbox messages, email). Request management workflow integrated into `/my-games` page with accept/reject functionality. Only one request can be accepted per offer.
+- **Offer Management**: Streamlined workflow for managing offers, including automatic removal of accepted offers from "Meine Angebote" and a dedicated "Vereinbart" tab for confirmed matches. VS-style display for confirmed matches. Orange "Spielangebot erstellen" button for easy access. **Edit Functionality**: Offer owners can edit their offers via ✏️ icon in MatchCard, opening EditOfferModal with all relevant fields (date, time, strength, format, field type, notes). **Reserve Feature**: Offers can be marked as "reserved" by owners, hiding them from /matches search results while keeping them visible in "Meine Angebote".
+- **Request Management**: Comprehensive system with multi-channel notifications (in-app notifications, inbox messages, email). Request management workflow integrated into `/my-games` page with accept/reject functionality. Only one request can be accepted per offer. **Withdraw Requests**: Modal confirmation for withdrawing requests with automatic multi-channel notifications.
 - **Profile Management**: Enhanced club/team management in profile, allowing users to add/join clubs and teams. Warning badge for incomplete profiles.
-- **Navigation**: Redesigned bottom navigation, replacing "Suchen" with "Meine Spiele" (My Games) which includes "Meine Angebote", "Gemerkt", and "Angefragt" tabs. Offer creation is now primarily accessed via "Meine Angebote".
-- **Code Quality & Security**: Centralized authentication and HTTP utilities. Removal of debug endpoints and sensitive console logs. Generic error messages for security.
+- **Navigation**: Redesigned bottom navigation with "Meine Spiele" (My Games) including "Meine Angebote", "Gemerkt", "Angefragt", and "Vereinbart" tabs. Offer creation accessed via prominent orange button in "Meine Angebote".
+- **Code Quality & Security**: Centralized authentication and HTTP utilities. Removal of debug endpoints and sensitive console logs. Generic error messages for security. Ownership verification in edit/update operations with null-check protection.
 - **Replit Migration**: Application migrated from Vercel to Replit, utilizing Replit Neon PostgreSQL.
 
 # External Dependencies
