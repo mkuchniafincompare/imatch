@@ -85,7 +85,7 @@ export async function POST(req: Request) {
     if (!requester) return NextResponse.json({ error: 'User nicht gefunden' }, { status: 404 })
 
     // Create or update request
-    const created = await prisma.offerRequest.upsert({
+    await prisma.offerRequest.upsert({
       where: { requesterUserId_offerId: { requesterUserId: userId, offerId } },
       update: { message: message ?? undefined },
       create: {
@@ -95,11 +95,9 @@ export async function POST(req: Request) {
         status: 'PENDING',
       },
     })
-
-    // Only send notifications/emails for new requests (not updates)
-    const isNewRequest = created.createdAt.getTime() === created.updatedAt.getTime()
     
-    if (isNewRequest) {
+    // Always send notifications (even for re-requests)
+    {
       const clubName = offer.team?.club?.name || 'Unbekannter Verein'
       const ageLabel = offer.ages[0]?.ageGroup || '—'
       const offerDate = offer.offerDate ? new Date(offer.offerDate).toLocaleDateString('de-DE') : '—'
@@ -141,7 +139,7 @@ export async function POST(req: Request) {
       }
     }
 
-    return NextResponse.json({ ok: true }, { status: isNewRequest ? 201 : 200 })
+    return NextResponse.json({ ok: true }, { status: 201 })
   } catch (e: any) {
     console.error('POST /api/requests error:', e)
     return NextResponse.json({ error: e?.message ?? 'Serverfehler' }, { status: 500 })
