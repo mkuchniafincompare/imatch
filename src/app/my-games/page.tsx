@@ -20,6 +20,7 @@ interface MatchItem {
   strengthLabel: string | null
   address: string | null
   logoUrl: string | null
+  savedCount?: number
 }
 
 export default function MyGamesPage() {
@@ -292,6 +293,14 @@ export default function MyGamesPage() {
             {currentOffers.map(offer => (
               <div key={offer.id} className="glass-card overflow-hidden">
                 <MatchCard {...offer} ageLabel={offer.ageLabel || '—'} />
+                {activeTab === 'own' && offer.savedCount !== undefined && offer.savedCount > 0 && (
+                  <div className="px-3 pb-3 pt-2 border-t border-white/15">
+                    <div className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm bg-green-500/20 text-green-200">
+                      <span>⭐</span>
+                      <span className="font-medium">{offer.savedCount} × gemerkt</span>
+                    </div>
+                  </div>
+                )}
                 {activeTab !== 'own' && (
                   <div className="px-3 pb-3 pt-2 border-t border-white/15 flex items-center justify-between">
                     <button

@@ -37,6 +37,11 @@ export async function GET() {
           },
         },
         ages: true,
+        _count: {
+          select: {
+            savedBy: true,
+          },
+        },
       },
       orderBy: [{ offerDate: 'desc' }, { createdAt: 'desc' }],
     })
@@ -64,6 +69,7 @@ export async function GET() {
         strengthLabel,
         address,
         logoUrl: club?.logoUrl ?? null,
+        savedCount: o._count.savedBy,
       }
     })
 
