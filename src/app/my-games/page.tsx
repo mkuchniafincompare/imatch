@@ -5,6 +5,7 @@ import BackgroundImage from '@/components/BackgroundImage'
 import MatchCard from '@/components/MatchCard'
 import ConfirmedMatchCard from '@/components/ConfirmedMatchCard'
 import Drawer from '@/components/Drawer'
+import ConfirmModal from '@/components/ConfirmModal'
 
 type Tab = 'own' | 'saved' | 'requested' | 'confirmed'
 
@@ -50,6 +51,8 @@ export default function MyGamesPage() {
   const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null)
   const [offerRequests, setOfferRequests] = useState<any[]>([])
   const [loadingRequests, setLoadingRequests] = useState(false)
+  const [withdrawModalOpen, setWithdrawModalOpen] = useState(false)
+  const [offerIdToWithdraw, setOfferIdToWithdraw] = useState<string | null>(null)
 
   useEffect(() => {
     fetchAllData()
@@ -213,25 +216,21 @@ export default function MyGamesPage() {
   }
 
   async function handleRequest(offerId: string) {
+    // Check if already requested - if yes, show withdraw modal
+    if (requestedIds.has(offerId)) {
+      setOfferIdToWithdraw(offerId)
+      setWithdrawModalOpen(true)
+      return
+    }
+
+    // Otherwise, send new request
     try {
-      if (requestedIds.has(offerId)) {
-        await fetch('/api/requests', {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ offerId }),
-        })
-        setRequestedIds(prev => {
-          const next = new Set(prev)
-          next.delete(offerId)
-          return next
-        })
-        setRequestedOffers(prev => prev.filter(o => o.id !== offerId))
-      } else {
-        await fetch('/api/requests', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ offerId }),
-        })
+      const res = await fetch('/api/requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ offerId }),
+      })
+      if (res.ok) {
         setRequestedIds(prev => new Set([...prev, offerId]))
         
         // Add offer to requestedOffers if not already there
@@ -243,6 +242,34 @@ export default function MyGamesPage() {
       }
     } catch (e: any) {
       console.error('Request failed:', e)
+    }
+  }
+
+  async function handleWithdrawRequest() {
+    if (!offerIdToWithdraw) return
+
+    try {
+      const res = await fetch('/api/requests/withdraw', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ offerId: offerIdToWithdraw }),
+      })
+      
+      if (res.ok) {
+        // Remove from requestedIds
+        setRequestedIds(prev => {
+          const newSet = new Set(prev)
+          newSet.delete(offerIdToWithdraw)
+          return newSet
+        })
+        
+        // Remove from requestedOffers
+        setRequestedOffers(prev => prev.filter(o => o.id !== offerIdToWithdraw))
+        
+        setOfferIdToWithdraw(null)
+      }
+    } catch (e: any) {
+      console.error('Withdraw request failed:', e)
     }
   }
 
@@ -551,6 +578,17 @@ export default function MyGamesPage() {
           </div>
         )}
       </Drawer>
+
+      {/* Withdraw Confirmation Modal */}
+      <ConfirmModal
+        open={withdrawModalOpen}
+        onClose={() => setWithdrawModalOpen(false)}
+        onConfirm={handleWithdrawRequest}
+        title="Anfrage zurückziehen?"
+        message="Möchtest du die Anfrage wirklich zurückziehen? Der Anbieter wird darüber per E-Mail, Nachricht und Benachrichtigung informiert."
+        confirmText="Ja"
+        cancelText="Nein"
+      />
     </main>
   )
 }
