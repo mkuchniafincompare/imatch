@@ -94,13 +94,12 @@ export default function EditOfferPage() {
   useEffect(() => {
     Promise.all([
       fetch('/api/team').then(r => r.json()),
-      fetch(`/api/offer/my-offers`).then(r => r.json()),
-    ]).then(([teamsData, offersData]) => {
+      fetch(`/api/offer/${offerId}`).then(r => r.json()),
+    ]).then(([teamsData, offer]) => {
       const items: Team[] = teamsData.items ?? []
       setTeams(items)
 
-      const offer = offersData.items?.find((o: any) => o.id === offerId)
-      if (offer) {
+      if (offer && !offer.error) {
         setTeamId(offer.teamId || '')
         
         const ages = offer.ages || []
