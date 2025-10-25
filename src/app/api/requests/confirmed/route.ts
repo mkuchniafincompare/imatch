@@ -66,6 +66,15 @@ export async function GET() {
                 club: true,
               },
             },
+            requesterUser: {
+              include: {
+                teams: {
+                  include: {
+                    club: true,
+                  },
+                },
+              },
+            },
           },
         },
         _count: {
@@ -107,7 +116,8 @@ export async function GET() {
 
       // Get opponent info from accepted request
       const acceptedRequest = o.requests?.[0]
-      const opponentTeam = acceptedRequest?.requesterTeam
+      // Use requesterTeam if available, otherwise fallback to first team of requester user
+      const opponentTeam = acceptedRequest?.requesterTeam || acceptedRequest?.requesterUser?.teams?.[0]
       const opponentClub = opponentTeam?.club
       const isOwner = o.team?.contactUserId === userId
 
