@@ -246,9 +246,14 @@ export default function MyGamesPage() {
     }
   }
 
+  // Filter: Wenn ein Spiel angefragt wurde, nicht mehr bei "Gemerkt" anzeigen
+  const filteredSavedOffers = savedOffers.filter(offer => 
+    !requestedOffers.some(req => req.id === offer.id)
+  )
+
   const currentOffers = 
     activeTab === 'own' ? ownOffers :
-    activeTab === 'saved' ? savedOffers :
+    activeTab === 'saved' ? filteredSavedOffers :
     activeTab === 'requested' ? requestedOffers :
     confirmedOffers
 
@@ -305,7 +310,7 @@ export default function MyGamesPage() {
         <div className="glass-card mb-6 p-1 rounded-2xl">
           <div className="grid grid-cols-4 gap-1">
             {(Object.entries(tabConfig) as [Tab, typeof tabConfig[Tab]][]).map(([key, config]) => {
-              const count = key === 'own' ? ownOffers.length : key === 'saved' ? savedOffers.length : key === 'requested' ? requestedOffers.length : confirmedOffers.length
+              const count = key === 'own' ? ownOffers.length : key === 'saved' ? filteredSavedOffers.length : key === 'requested' ? requestedOffers.length : confirmedOffers.length
               return (
                 <button
                   key={key}
