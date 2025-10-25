@@ -92,6 +92,14 @@ enum UserStatus {
   PENDING // 24h Frist verstrichen -> pending bis erneute DOI
 }
 
+enum NotificationType {
+  REQUEST_RECEIVED  // Jemand hat dein Angebot angefragt
+  REQUEST_ACCEPTED  // Deine Anfrage wurde akzeptiert
+  REQUEST_REJECTED  // Deine Anfrage wurde abgelehnt
+  OFFER_UPDATED     // Ein gespeichertes Angebot wurde aktualisiert
+  MATCH_CONFIRMED   // Spieltermin bestätigt
+}
+
 model User {
   id    String @id @default(cuid())
   email String @unique
@@ -124,6 +132,10 @@ model User {
   savedOffers SavedOffer[]
 
   requests  OfferRequest[]
+  
+  notificationsReceived Notification[]
+  messagesSent          InboxMessage[]   @relation("SentMessages")
+  messagesReceived      InboxMessage[]   @relation("ReceivedMessages")
 }
 
 model Club {
@@ -309,6 +321,7 @@ model OfferRequest {
   message         String?
   status          RequestStatus @default(PENDING)
   createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @default(now()) @updatedAt
 
   requesterUser User      @relation(fields: [requesterUserId], references: [id], onDelete: Cascade)
   offer         GameOffer @relation(fields: [offerId], references: [id], onDelete: Cascade)
@@ -316,4 +329,47 @@ model OfferRequest {
 
   @@id([requesterUserId, offerId])
   @@index([offerId])
+  @@index([status])
+}
+
+model Notification {
+  id     String           @id @default(cuid())
+  userId String
+  type   NotificationType
+
+  title   String
+  message String?
+
+  relatedOfferId     String?
+  relatedRequesterId String?
+
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read, createdAt])
+  @@index([createdAt])
+}
+
+model InboxMessage {
+  id String @id @default(cuid())
+
+  fromUserId String
+  toUserId   String
+
+  subject String
+  message String
+
+  relatedOfferId  String?
+  relatedRequestId String? // format: "userId_offerId" for composite key
+
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  sender   User @relation("SentMessages", fields: [fromUserId], references: [id], onDelete: Cascade)
+  receiver User @relation("ReceivedMessages", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  @@index([toUserId, read, createdAt])
+  @@index([fromUserId, createdAt])
 }

@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 // src/app/api/requests/route.ts
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { sendEmail } from '@/lib/replitmail'
 
 function getUserIdFromCookie(req: Request): string | null {
   try {
@@ -66,17 +67,37 @@ export async function POST(req: Request) {
     const message = typeof body?.message === 'string' ? body.message.trim() : null
     if (!offerId) return NextResponse.json({ error: 'offerId fehlt' }, { status: 400 })
 
-    // ensure offer exists and is not user's own offer
+    // Get full offer details with team, club, and requester info
     const offer = await prisma.gameOffer.findUnique({
       where: { id: offerId },
-      select: { id: true, team: { select: { contactUserId: true } } },
+      include: {
+        team: {
+          include: {
+            club: true,
+            contactUser: { select: { id: true, email: true, firstName: true, lastName: true } }
+          }
+        },
+        ages: true,
+      },
     })
+    
     if (!offer) return NextResponse.json({ error: 'offerId unbekannt' }, { status: 404 })
     if (offer.team?.contactUserId === userId) {
       return NextResponse.json({ error: 'eigene Angebote können nicht angefragt werden' }, { status: 400 })
     }
 
-    await prisma.offerRequest.upsert({
+    const targetUserId = offer.team?.contactUserId
+    if (!targetUserId) return NextResponse.json({ error: 'Kein Ansprechpartner gefunden' }, { status: 400 })
+
+    // Get requester info
+    const requester = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { firstName: true, lastName: true, email: true },
+    })
+    if (!requester) return NextResponse.json({ error: 'User nicht gefunden' }, { status: 404 })
+
+    // Create or update request
+    const created = await prisma.offerRequest.upsert({
       where: { requesterUserId_offerId: { requesterUserId: userId, offerId } },
       update: { message: message ?? undefined },
       create: {
@@ -86,7 +107,55 @@ export async function POST(req: Request) {
         status: 'PENDING',
       },
     })
-    return NextResponse.json({ ok: true }, { status: 201 })
+
+    // Only send notifications/emails for new requests (not updates)
+    const isNewRequest = created.createdAt.getTime() === created.updatedAt.getTime()
+    
+    if (isNewRequest) {
+      const clubName = offer.team?.club?.name || 'Unbekannter Verein'
+      const ageLabel = offer.ages[0]?.ageGroup || '—'
+      const offerDate = offer.offerDate ? new Date(offer.offerDate).toLocaleDateString('de-DE') : '—'
+      
+      // 1) Notification
+      await prisma.notification.create({
+        data: {
+          userId: targetUserId,
+          type: 'REQUEST_RECEIVED',
+          title: 'Neue Spielanfrage',
+          message: `${requester.firstName} ${requester.lastName} hat dein ${ageLabel}-Angebot vom ${offerDate} angefragt.`,
+          relatedOfferId: offerId,
+          relatedRequesterId: userId,
+        },
+      }).catch(() => null)
+
+      // 2) InboxMessage
+      await prisma.inboxMessage.create({
+        data: {
+          fromUserId: userId,
+          toUserId: targetUserId,
+          subject: `Spielanfrage für ${clubName} ${ageLabel}`,
+          message: message || `Ich interessiere mich für dein Spielangebot vom ${offerDate}.`,
+          relatedOfferId: offerId,
+          relatedRequestId: `${userId}_${offerId}`,
+        },
+      }).catch(() => null)
+
+      // 3) Email
+      const targetEmail = offer.team?.contactUser?.email
+      if (targetEmail) {
+        try {
+          await sendEmail({
+            to: targetEmail,
+            subject: `iMatch: Neue Anfrage für ${clubName} ${ageLabel}`,
+            text: `Hallo ${offer.team?.contactUser?.firstName},\n\n${requester.firstName} ${requester.lastName} (${requester.email}) hat dein Spielangebot angefragt:\n\nVerein: ${clubName}\nAltersklasse: ${ageLabel}\nDatum: ${offerDate}\n\n${message ? `Nachricht: ${message}\n\n` : ''}Melde dich in iMatch an, um die Anfrage zu bearbeiten.\n\nViele Grüße,\niMatch Team`,
+          })
+        } catch (emailError) {
+          console.error('Email sending failed:', emailError)
+        }
+      }
+    }
+
+    return NextResponse.json({ ok: true }, { status: isNewRequest ? 201 : 200 })
   } catch (e: any) {
     return NextResponse.json({ error: e?.message ?? 'Serverfehler' }, { status: 500 })
   }

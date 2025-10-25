@@ -40,6 +40,7 @@ export async function GET() {
         _count: {
           select: {
             savedBy: true,
+            requests: true,
           },
         },
       },
@@ -70,6 +71,7 @@ export async function GET() {
         address,
         logoUrl: club?.logoUrl ?? null,
         savedCount: o._count.savedBy,
+        requestCount: o._count.requests,
       }
     })
 
