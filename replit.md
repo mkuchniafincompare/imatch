@@ -4,9 +4,42 @@ This is **iMatch**, a Next.js 15 application for finding and offering youth socc
 
 Built with Next.js (App Router), React 19, Prisma ORM, and Tailwind CSS v4. The app uses cookie-based authentication with bcrypt password hashing and optional OTP login. Users can register, create or join clubs, manage teams, post match offers, search for opponents, and save/request matches.
 
-## Recent Changes (October 24, 2025)
+## Recent Changes (October 25, 2025)
 
-**Profile Club/Team Management Enhancement**:
+**Comprehensive Request Management System**:
+- Implemented complete multi-channel notification system for match requests:
+  - **Database Schema**: Added `Notification` and `InboxMessage` models for app-internal messaging
+  - **API Routes**: Created `/api/notifications` and `/api/messages` (GET for list + unread count, POST for creation, PATCH to mark as read)
+  - **Email Integration**: Integrated Replit Mail for transactional emails via `/api/requests` POST route
+  - **Request Flow**: When user requests a match, system automatically creates:
+    1. Notification (bell icon) for offer owner
+    2. InboxMessage (chat icon) with request details
+    3. Email notification to offer owner's email address
+- Extended `/my-games` page with request management features:
+  - Added request count to `/api/offer/my-offers` (via `_count.requests`)
+  - Display "X × angefragt" badge (orange) on own offers with requests
+  - Orange border around offers with pending requests
+  - Clickable offer cards open Request Details Drawer showing:
+    - List of requesters with club name, team, and message
+    - Status badges (Ausstehend/Akzeptiert/Abgelehnt)
+    - Accept/Reject buttons for pending requests
+- Created `/api/requests/[offerId]` route to fetch all requests for an offer (with authorization check)
+- Created `/api/requests/[offerId]/respond` route for accepting/rejecting requests:
+  - Only one request can be accepted per offer (prevents double-booking)
+  - Sends notifications, messages, and emails for both accept and reject actions
+  - Updates request status to ACCEPTED or REJECTED
+- Added fourth tab "Vereinbart" to `/my-games` showing confirmed matches:
+  - Displays accepted requests for both parties (offer creators and requesters)
+  - API route `/api/requests/confirmed` fetches all ACCEPTED requests where user is involved
+- Enhanced HeaderBar with real-time badge counts:
+  - Fetches unread counts from `/api/notifications` and `/api/messages` on mount
+  - Displays red badges on bell/chat icons when unread items exist
+  - Notification drawer shows all notifications with visual distinction for unread (amber background)
+  - Message drawer shows all inbox messages with visual distinction for unread (blue background)
+  - Click-to-mark-as-read functionality updates counts immediately
+- All notification/messaging flows tested and working end-to-end
+
+**Profile Club/Team Management Enhancement** (October 24, 2025):
 - Extended `ProfileAffiliation` component with "+ Verein/Team hinzufügen" button
 - Integrated club selection/creation drawer (similar to registration flow):
   - Live search for existing clubs with debounced input
