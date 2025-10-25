@@ -4,26 +4,14 @@ export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { sendEmail } from '@/lib/replitmail'
-
-function getUserIdFromCookie(req: Request): string | null {
-  try {
-    const cookie = req.headers.get('cookie') || ''
-    const m = /(?:^|;\s*)mm_session=([^;]+)/.exec(cookie)
-    if (!m) return null
-    const val = decodeURIComponent(m[1])
-    if (!val.startsWith('uid:')) return null
-    return val.slice(4)
-  } catch {
-    return null
-  }
-}
+import { getUserIdFromCookie } from '@/lib/auth'
 
 // GET /api/requests
 // - optional: ?ids=offer1,offer2 -> returns which of these are already requested by the user
 // - otherwise: returns all requested offerIds for the user
 export async function GET(req: Request) {
   try {
-    const userId = getUserIdFromCookie(req)
+    const userId = await getUserIdFromCookie()
     if (!userId) {
       return NextResponse.json({ error: 'nicht eingeloggt' }, { status: 401 })
     }
@@ -58,7 +46,7 @@ export async function GET(req: Request) {
 // body: { offerId: string, message?: string }
 export async function POST(req: Request) {
   try {
-    const userId = getUserIdFromCookie(req)
+    const userId = await getUserIdFromCookie()
     if (!userId) {
       return NextResponse.json({ error: 'nicht eingeloggt' }, { status: 401 })
     }
@@ -165,7 +153,7 @@ export async function POST(req: Request) {
 // body: { offerId: string }
 export async function DELETE(req: Request) {
   try {
-    const userId = getUserIdFromCookie(req)
+    const userId = await getUserIdFromCookie()
     if (!userId) {
       return NextResponse.json({ error: 'nicht eingeloggt' }, { status: 401 })
     }
