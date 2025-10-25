@@ -61,13 +61,9 @@ export async function GET() {
             status: 'ACCEPTED',
           },
           include: {
-            requesterUser: {
+            requesterTeam: {
               include: {
-                team: {
-                  include: {
-                    club: true,
-                  },
-                },
+                club: true,
               },
             },
           },
@@ -111,7 +107,7 @@ export async function GET() {
 
       // Get opponent info from accepted request
       const acceptedRequest = o.requests?.[0]
-      const opponentTeam = acceptedRequest?.requesterUser?.team
+      const opponentTeam = acceptedRequest?.requesterTeam
       const opponentClub = opponentTeam?.club
       const isOwner = o.team?.contactUserId === userId
 
