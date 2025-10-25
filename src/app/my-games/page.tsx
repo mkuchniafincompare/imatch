@@ -110,8 +110,16 @@ export default function MyGamesPage() {
   async function fetchConfirmedOffers() {
     try {
       const res = await fetch('/api/requests/confirmed')
-      if (!res.ok) throw new Error('Vereinbarte Spiele konnten nicht geladen werden')
-      const data = await res.json()
+      if (!res.ok) {
+        setConfirmedOffers([])
+        return
+      }
+      const text = await res.text()
+      if (!text) {
+        setConfirmedOffers([])
+        return
+      }
+      const data = JSON.parse(text)
       setConfirmedOffers(data.items || [])
     } catch (e) {
       console.error('Confirmed offers fetch failed:', e)
@@ -366,7 +374,8 @@ export default function MyGamesPage() {
               return (
                 <div 
                   key={offer.id} 
-                  className={`glass-card overflow-hidden ${hasRequests ? 'ring-2 ring-orange-500 cursor-pointer' : ''} ${activeTab === 'confirmed' ? 'border-2 border-green-500' : ''}`}
+                  className={`glass-card overflow-hidden ${hasRequests ? 'ring-2 ring-orange-500 cursor-pointer' : ''}`}
+                  style={activeTab === 'confirmed' ? { border: '2px solid #22c55e' } : undefined}
                   onClick={() => hasRequests ? openRequestsDrawer(offer.id) : null}
                 >
                   <MatchCard {...offer} ageLabel={offer.ageLabel || '—'} />

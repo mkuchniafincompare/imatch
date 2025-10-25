@@ -6,16 +6,16 @@ Built with Next.js (App Router), React 19, Prisma ORM, and Tailwind CSS v4. The 
 
 ## Recent Changes (October 25, 2025)
 
-**Comprehensive Request Management System**:
+**Comprehensive Request Management System** (COMPLETED):
 - Implemented complete multi-channel notification system for match requests:
-  - **Database Schema**: Added `Notification` and `InboxMessage` models for app-internal messaging
+  - **Database Schema**: Added `Notification` and `InboxMessage` models for app-internal messaging (Prisma client regenerated)
   - **API Routes**: Created `/api/notifications` and `/api/messages` (GET for list + unread count, POST for creation, PATCH to mark as read)
   - **Email Integration**: Integrated Replit Mail for transactional emails via `/api/requests` POST route
   - **Request Flow**: When user requests a match, system automatically creates:
     1. Notification (bell icon) for offer owner
     2. InboxMessage (chat icon) with request details
     3. Email notification to offer owner's email address
-- Extended `/my-games` page with request management features:
+- Extended `/my-games` page with complete request management workflow:
   - Added request count to `/api/offer/my-offers` (via `_count.requests`)
   - Display "X × angefragt" badge (orange) on own offers with requests
   - Orange border around offers with pending requests
@@ -31,6 +31,9 @@ Built with Next.js (App Router), React 19, Prisma ORM, and Tailwind CSS v4. The 
 - Added fourth tab "Vereinbart" to `/my-games` showing confirmed matches:
   - Displays accepted requests for both parties (offer creators and requesters)
   - API route `/api/requests/confirmed` fetches all ACCEPTED requests where user is involved
+  - Green border (2px solid) around all confirmed match cards using inline styles
+  - Action buttons (Merken/Anfragen) hidden on confirmed matches (only visible on saved/requested tabs)
+  - Robust error handling with text-based JSON parsing to prevent crashes
 - Enhanced HeaderBar with real-time badge counts:
   - Fetches unread counts from `/api/notifications` and `/api/messages` on mount
   - Displays red badges on bell/chat icons when unread items exist
@@ -38,6 +41,7 @@ Built with Next.js (App Router), React 19, Prisma ORM, and Tailwind CSS v4. The 
   - Message drawer shows all inbox messages with visual distinction for unread (blue background)
   - Click-to-mark-as-read functionality updates counts immediately
 - All notification/messaging flows tested and working end-to-end
+- **Technical Notes**: Prisma model names use camelCase for client access (e.g., `prisma.notification`, `prisma.inboxMessage`)
 
 **Profile Club/Team Management Enhancement** (October 24, 2025):
 - Extended `ProfileAffiliation` component with "+ Verein/Team hinzufügen" button
