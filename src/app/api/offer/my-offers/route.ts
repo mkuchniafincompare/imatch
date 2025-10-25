@@ -24,10 +24,16 @@ export async function GET() {
     const userId = await requireAuth()
 
     // Find all offers where the team's contactUserId is the current user
+    // Exclude offers that have accepted requests (those are shown in "Vereinbart")
     const offers = await prisma.gameOffer.findMany({
       where: {
         team: {
           contactUserId: userId,
+        },
+        requests: {
+          none: {
+            status: 'ACCEPTED',
+          },
         },
       },
       include: {

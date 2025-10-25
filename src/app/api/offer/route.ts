@@ -174,6 +174,12 @@ export async function GET(req: Request) {
       : dateFrom ? { offerDate: { gte: dateFrom } }
       : dateTo   ? { offerDate: { lte: dateTo } }
       : {}),
+    // Exclude offers that have been confirmed (ACCEPTED status)
+    requests: {
+      none: {
+        status: 'ACCEPTED',
+      },
+    },
   }
   // Eigene Angebote (vom eingeloggten User) ausblenden
   if (currentUserId) {

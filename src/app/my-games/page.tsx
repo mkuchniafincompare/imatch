@@ -23,6 +23,7 @@ interface MatchItem {
   logoUrl: string | null
   savedCount?: number
   requestCount?: number
+  pendingRequestCount?: number
 }
 
 export default function MyGamesPage() {
@@ -379,6 +380,14 @@ export default function MyGamesPage() {
                   onClick={() => hasRequests ? openRequestsDrawer(offer.id) : null}
                 >
                   <MatchCard {...offer} ageLabel={offer.ageLabel || '—'} />
+                  {activeTab === 'confirmed' && offer.pendingRequestCount !== undefined && offer.pendingRequestCount > 0 && (
+                    <div className="px-3 pb-3 pt-2 border-t border-white/15 flex flex-wrap gap-2">
+                      <div className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm bg-yellow-500/20 text-yellow-200">
+                        <span>⏳</span>
+                        <span className="font-medium">{offer.pendingRequestCount} {offer.pendingRequestCount === 1 ? 'Anfrage offen' : 'Anfragen offen'}</span>
+                      </div>
+                    </div>
+                  )}
                   {activeTab === 'own' && (
                     <div className="px-3 pb-3 pt-2 border-t border-white/15 flex flex-wrap gap-2">
                       {offer.savedCount !== undefined && offer.savedCount > 0 && (

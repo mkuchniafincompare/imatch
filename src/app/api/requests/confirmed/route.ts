@@ -50,12 +50,21 @@ export async function GET() {
       return NextResponse.json({ items: [], count: 0 })
     }
 
-    // Fetch offer details
+    // Fetch offer details with pending request counts
     const offers = await prisma.gameOffer.findMany({
       where: { id: { in: uniqueOfferIds } },
       include: {
         team: { include: { club: true } },
         ages: true,
+        _count: {
+          select: {
+            requests: {
+              where: {
+                status: 'PENDING',
+              },
+            },
+          },
+        },
       },
     })
 
@@ -98,6 +107,7 @@ export async function GET() {
         strengthLabel,
         address,
         logoUrl: club?.logoUrl ?? null,
+        pendingRequestCount: o._count?.requests ?? 0,
       }
     })
 
