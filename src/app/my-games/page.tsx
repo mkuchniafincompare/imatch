@@ -366,7 +366,7 @@ export default function MyGamesPage() {
               return (
                 <div 
                   key={offer.id} 
-                  className={`glass-card overflow-hidden ${hasRequests ? 'ring-2 ring-orange-500 cursor-pointer' : ''}`}
+                  className={`glass-card overflow-hidden ${hasRequests ? 'ring-2 ring-orange-500 cursor-pointer' : ''} ${activeTab === 'confirmed' ? 'ring-2 ring-green-500' : ''}`}
                   onClick={() => hasRequests ? openRequestsDrawer(offer.id) : null}
                 >
                   <MatchCard {...offer} ageLabel={offer.ageLabel || '—'} />
@@ -386,7 +386,7 @@ export default function MyGamesPage() {
                       )}
                     </div>
                     )}
-                  {activeTab !== 'own' && (
+                  {activeTab !== 'own' && activeTab !== 'confirmed' && (
                   <div className="px-3 pb-3 pt-2 border-t border-white/15 flex items-center justify-between">
                     <button
                       type="button"
