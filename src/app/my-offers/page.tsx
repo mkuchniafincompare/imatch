@@ -202,20 +202,13 @@ export default function MyOffersPage() {
         ) : (
           <>
             <div className="space-y-4">
-              {ownOffers.map(offer => {
+              {ownOffers.map((offer, index) => {
                 const hasRequests = offer.requestCount && offer.requestCount > 0
                 return (
                   <div 
                     key={offer.id} 
                     className={`glass-card overflow-hidden relative ${hasRequests ? 'ring-2 ring-orange-500' : ''}`}
                   >
-                    {/* Reserviert-Banner */}
-                    {offer.isReserved && (
-                      <div className="absolute top-3 left-3 z-10 bg-amber-400 text-amber-900 text-xs font-bold px-2 py-1 rounded shadow-md">
-                        Reserviert
-                      </div>
-                    )}
-                    
                     <div 
                       className={hasRequests ? 'cursor-pointer' : ''}
                       onClick={() => hasRequests ? openRequestsDrawer(offer.id) : null}
@@ -223,6 +216,7 @@ export default function MyOffersPage() {
                       <MatchCard 
                         {...offer} 
                         ageLabel={offer.ageLabel || '—'}
+                        isReserved={offer.isReserved}
                       />
                     </div>
                     
@@ -247,6 +241,7 @@ export default function MyOffersPage() {
                         <BurgerMenu
                           offerId={offer.id}
                           isReserved={offer.isReserved || false}
+                          isFirstItem={index === 0}
                           onEdit={() => {
                             setOpenMenuId(null)
                             router.push(`/offer/edit/${offer.id}`)
@@ -373,6 +368,7 @@ export default function MyOffersPage() {
 function BurgerMenu({
   offerId,
   isReserved,
+  isFirstItem,
   onEdit,
   onReserve,
   onDelete,
@@ -380,6 +376,7 @@ function BurgerMenu({
 }: {
   offerId: string
   isReserved: boolean
+  isFirstItem: boolean
   onEdit: () => void
   onReserve: () => void
   onDelete: () => void
@@ -388,10 +385,15 @@ function BurgerMenu({
   const menuRef = useRef<HTMLDivElement>(null)
   useOnClickOutside(menuRef, onClose)
 
+  // Bei erstem Item nach unten öffnen, sonst nach oben
+  const positionClass = isFirstItem 
+    ? "top-full right-0 mt-2" 
+    : "bottom-full right-0 mb-2"
+
   return (
     <div
       ref={menuRef}
-      className="absolute bottom-full right-0 mb-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden"
+      className={`absolute ${positionClass} w-48 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden`}
       onClick={(e) => e.stopPropagation()}
     >
       <button

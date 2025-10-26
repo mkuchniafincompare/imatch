@@ -63,6 +63,15 @@ export default function MatchCard({
         )}
       </div>
 
+      {/* Reserviert-Banner in eigener Zeile */}
+      {isReserved && (
+        <div className="mb-2 pr-16">
+          <span className="inline-block bg-amber-400 text-amber-900 text-xs font-bold px-2 py-1 rounded shadow-md">
+            Reserviert
+          </span>
+        </div>
+      )}
+
       {/* Kopf */}
       <div className="pr-16">
         <div className="flex items-center gap-2">
