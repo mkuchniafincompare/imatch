@@ -6,15 +6,29 @@ import BackgroundImage from '@/components/BackgroundImage'
 import MatchCard from '@/components/MatchCard'
 import Drawer from '@/components/Drawer'
 
-function useOnClickOutside(ref: React.RefObject<HTMLElement | null>, handler: () => void) {
+function useOnClickOutside(
+  ref: React.RefObject<HTMLElement | null>, 
+  handler: () => void,
+  excludeId?: string
+) {
   useEffect(() => {
     function listener(e: MouseEvent) {
       if (!ref.current || ref.current.contains(e.target as Node)) return
+      
+      // Ignore clicks on the burger button
+      if (excludeId) {
+        const target = e.target as HTMLElement
+        const burgerButton = document.getElementById(excludeId)
+        if (burgerButton && (burgerButton === target || burgerButton.contains(target))) {
+          return
+        }
+      }
+      
       handler()
     }
     document.addEventListener('mousedown', listener)
     return () => document.removeEventListener('mousedown', listener)
-  }, [ref, handler])
+  }, [ref, handler, excludeId])
 }
 
 interface MatchItem {
@@ -237,7 +251,6 @@ export default function MyOffersPage() {
                     <div className="absolute bottom-3 right-3 z-20">
                       <button
                         id={`burger-${offer.id}`}
-                        onMouseDown={(e) => e.stopPropagation()}
                         onClick={(e) => {
                           e.preventDefault()
                           e.stopPropagation()
@@ -440,7 +453,7 @@ function BurgerMenu({
 }) {
   const menuRef = useRef<HTMLDivElement>(null)
   
-  useOnClickOutside(menuRef, onClose)
+  useOnClickOutside(menuRef, onClose, `burger-${offerId}`)
 
   // Finde das Burger-Button-Element um das Menü richtig zu positionieren
   useEffect(() => {
