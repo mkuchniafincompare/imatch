@@ -46,11 +46,15 @@ export async function GET() {
         _count: {
           select: {
             savedBy: true,
-            requests: true,
+            requests: {
+              where: {
+                status: 'PENDING',
+              },
+            },
           },
         },
       },
-      orderBy: [{ offerDate: 'desc' }, { createdAt: 'desc' }],
+      orderBy: [{ offerDate: 'asc' }, { createdAt: 'asc' }],
     })
 
     const items = offers.map(o => {

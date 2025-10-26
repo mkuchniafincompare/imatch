@@ -32,9 +32,12 @@ export async function GET(
       return NextResponse.json({ error: 'Keine Berechtigung' }, { status: 403 })
     }
 
-    // Get all requests for this offer
+    // Get only PENDING requests for this offer (for managing active requests)
     const requests = await prisma.offerRequest.findMany({
-      where: { offerId },
+      where: { 
+        offerId,
+        status: 'PENDING',
+      },
       include: {
         requesterUser: {
           select: {
