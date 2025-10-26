@@ -62,6 +62,8 @@ export async function POST(req: NextRequest) {
       prisma.notification.deleteMany({ where: { relatedOfferId: offerId } }),
       // Delete inbox messages
       prisma.inboxMessage.deleteMany({ where: { relatedOfferId: offerId } }),
+      // Delete offer age groups
+      prisma.offerAge.deleteMany({ where: { offerId } }),
       // Finally delete the offer itself
       prisma.gameOffer.delete({ where: { id: offerId } }),
     ])
