@@ -191,9 +191,8 @@ export default function MyOffersPage() {
       <div className="relative z-10 max-w-4xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <span>➕</span>
-            <span>Meine Spielangebote</span>
+          <h1 className="text-2xl font-bold text-white">
+            Meine Spielangebote
           </h1>
         </div>
 

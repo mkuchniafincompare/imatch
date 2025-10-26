@@ -5,7 +5,7 @@ import Image from 'next/image'
 
 function Badge({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-block rounded-full border border-white/25 bg-white/10 text-white/90 text-[11px] px-2 py-[2px] backdrop-blur-[1px]">
+    <span className="inline-block rounded-full bg-white/90 text-gray-800 text-[11px] px-2 py-[2px] font-medium shadow-sm">
       {children}
     </span>
   )
@@ -47,7 +47,7 @@ export default function MatchCard({
     <div className="relative overflow-hidden rounded-2xl px-3 py-3">
       
       {/* Rechts: Logo */}
-      <div className="absolute right-3 top-3 w-12 h-12 rounded-md overflow-hidden border border-white/25 bg-white/15 backdrop-blur-[1px] grid place-items-center">
+      <div className="absolute right-3 top-3 w-12 h-12 rounded-md overflow-hidden bg-white/15 backdrop-blur-[1px] grid place-items-center">
         {logoUrl && !imgErr ? (
           <Image
             src={logoUrl}
@@ -81,7 +81,7 @@ export default function MatchCard({
         </div>
       </div>
 
-      {/* Infozeile: Datum • Uhrzeit (+ flexibel) • Spielzeit • Heim/Auswärts */}
+      {/* Erste Zeile: Datum • Uhrzeit (+ flexibel) */}
       <div className="mt-2 text-[12px] text-white/90 flex flex-wrap items-center gap-2">
         <span aria-hidden>📅</span>
         <span>{dateFmt}</span>
@@ -89,15 +89,17 @@ export default function MatchCard({
         <span aria-hidden>⏰</span>
         <span>{timeFmt}</span>
         {kickoffFlexible && <Badge>flexibel</Badge>}
+      </div>
 
+      {/* Zweite Zeile: Spielzeit • Heim/Auswärts */}
+      <div className="mt-1 text-[12px] text-white/90 flex flex-wrap items-center gap-2">
         {playTime && (
           <>
-            <span aria-hidden>•</span>
             <span aria-label="Spielzeit">⏱️ {playTime}</span>
+            <span aria-hidden>•</span>
           </>
         )}
-
-        <span aria-hidden>•</span>
+        
         {homeAway === 'HOME' && <Badge>Heim</Badge>}
         {homeAway === 'AWAY' && <Badge>Auswärts</Badge>}
         {homeAway === 'FLEX' && <Badge>Heim / Auswärts</Badge>}
