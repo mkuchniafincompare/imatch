@@ -105,11 +105,16 @@ export default function MatchCard({
       )}
 
       {/* Fuß */}
-      <div className="mt-3 flex items-center justify-between">
-        <div className="flex items-center gap-2 text-[12px] text-white/90">
-          {strengthLabel ? <Badge>{strengthLabel}</Badge> : null}
-        </div>
-        <div className="flex items-center gap-1 text-[12px] text-white/80 max-w-[60%] text-right">
+      <div className="mt-3 space-y-2 pb-2">
+        {/* Stärke-Badge */}
+        {strengthLabel && (
+          <div className="flex items-center gap-2 text-[12px] text-white/90">
+            <Badge>{strengthLabel}</Badge>
+          </div>
+        )}
+        
+        {/* Adresse in eigener Zeile */}
+        <div className="flex items-center gap-1 text-[12px] text-white/80 pr-10">
           <span aria-hidden>📍</span>
           <span className="truncate">{address || '—'}</span>
         </div>
