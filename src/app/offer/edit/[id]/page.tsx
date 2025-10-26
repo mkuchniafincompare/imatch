@@ -158,7 +158,7 @@ export default function EditOfferPage() {
       setMsg(`✓ Angebot gespeichert`)
       
       setTimeout(() => {
-        router.push('/my-games')
+        router.push('/my-offers')
       }, 1000)
     } catch (err: any) {
       setMsg(`✗ Fehler: ${err?.message ?? 'unbekannt'}`)
