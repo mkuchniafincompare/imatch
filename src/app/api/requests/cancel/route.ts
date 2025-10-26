@@ -78,6 +78,29 @@ export async function POST(req: Request) {
       },
     })
 
+    // Remove SavedOffer from requester (they no longer need it saved since match is cancelled)
+    await prisma.savedOffer.delete({
+      where: {
+        userId_offerId: {
+          userId: request.requesterUserId,
+          offerId: request.offerId,
+        },
+      },
+    }).catch(() => null) // ignore if doesn't exist
+
+    // Find all other users who have this offer saved
+    const otherSavedOffers = await prisma.savedOffer.findMany({
+      where: {
+        offerId: request.offerId,
+        userId: { not: request.requesterUserId },
+      },
+      include: {
+        user: {
+          select: { id: true, email: true, firstName: true, lastName: true },
+        },
+      },
+    })
+
     // Determine who cancelled and who should be notified
     const canceller = isRequester ? requester : request.offer.team?.contactUser
     const recipient = isRequester ? request.offer.team?.contactUser : requester
@@ -128,6 +151,44 @@ export async function POST(req: Request) {
       }).catch((err) => {
         console.log('Email not sent (mail not configured):', err.message)
       })
+    }
+
+    // 4) Notify all other users who have this offer saved that it's available again
+    for (const savedOffer of otherSavedOffers) {
+      const savedUser = savedOffer.user
+
+      // Notification
+      await prisma.notification.create({
+        data: {
+          userId: savedUser.id,
+          type: 'OFFER_AVAILABLE_AGAIN',
+          title: 'Gemerktes Spiel wieder verfügbar',
+          message: `Das ${ageLabel}-Spiel von ${clubName} vom ${offerDate} wurde abgesagt und ist wieder verfügbar. Du kannst jetzt eine Anfrage senden!`,
+          relatedOfferId: offerId,
+        },
+      }).catch(() => null)
+
+      // InboxMessage
+      await prisma.inboxMessage.create({
+        data: {
+          fromUserId: request.offer.team?.contactUserId || '',
+          toUserId: savedUser.id,
+          subject: `Gemerktes Spiel verfügbar: ${clubName} ${ageLabel}`,
+          message: `Hallo,\n\nein von dir gemerktes Spiel ist wieder verfügbar:\n\nVerein: ${clubName}\nAltersklasse: ${ageLabel}\nDatum: ${offerDate}\n\nDu kannst jetzt eine Anfrage für dieses Spiel senden!\n\nViele Grüße,\niMatch`,
+          relatedOfferId: offerId,
+        },
+      }).catch(() => null)
+
+      // Email
+      if (savedUser.email) {
+        sendEmail({
+          to: savedUser.email,
+          subject: `iMatch: Gemerktes Spiel wieder verfügbar`,
+          text: `Hallo ${savedUser.firstName},\n\nein von dir gemerktes Spiel ist wieder verfügbar:\n\nVerein: ${clubName}\nAltersklasse: ${ageLabel}\nDatum: ${offerDate}\n\nDas Spiel wurde abgesagt und du kannst jetzt eine Anfrage senden!\n\nMelde dich in iMatch an, um das Angebot zu sehen.\n\nViele Grüße,\niMatch Team`,
+        }).catch((err) => {
+          console.log('Email not sent (mail not configured):', err.message)
+        })
+      }
     }
 
     return NextResponse.json({ ok: true })
