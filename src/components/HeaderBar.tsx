@@ -139,11 +139,11 @@ export default function HeaderBar() {
   }
 
   return (
-    <header className="fixed top-0 inset-x-0 z-40 h-12 bg-white/95 backdrop-blur border-b">
+    <header className="fixed top-0 inset-x-0 z-40 h-12 bg-[#D04D2E]/95 backdrop-blur border-b border-[#D04D2E]">
       <div className="mx-auto max-w-screen-sm h-full flex items-center justify-between px-4">
         {/* Links: App-Icon -> /matches */}
         <Link href="/matches" className="inline-flex items-center gap-2" aria-label="iMatch Home">
-          <div className="w-7 h-7 rounded-lg border border-black/10 bg-white overflow-hidden grid place-items-center">
+          <div className="w-7 h-7 rounded-lg border border-white/30 bg-white overflow-hidden grid place-items-center">
             <Image
               src="/icon.png"
               alt="iMatch Icon"
@@ -165,7 +165,7 @@ export default function HeaderBar() {
               onClick={() => { setOpenChat(true); setOpenBell(false); setOpenProfile(false) }}
               aria-haspopup="dialog"
               aria-expanded={openChat}
-              className="inline-flex items-center justify-center w-8 h-8 rounded-full border hover:bg-gray-50 active:scale-[0.98] transition"
+              className="inline-flex items-center justify-center w-8 h-8 rounded-full border border-white/40 hover:bg-white/20 active:scale-[0.98] transition"
               title="Nachrichten"
             >
               <Image
@@ -173,10 +173,10 @@ export default function HeaderBar() {
                 alt="Nachrichten"
                 width={18}
                 height={18}
-                className="object-contain"
+                className="object-contain brightness-0 invert"
               />
               {unreadMessages > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[#D04D2E] text-white text-[10px] leading-[18px] text-center">
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-white text-[#D04D2E] text-[10px] font-bold leading-[18px] text-center">
                   {unreadMessages > 9 ? '9+' : unreadMessages}
                 </span>
               )}
@@ -190,7 +190,7 @@ export default function HeaderBar() {
               onClick={() => { setOpenBell(true); setOpenChat(false); setOpenProfile(false) }}
               aria-haspopup="dialog"
               aria-expanded={openBell}
-              className="inline-flex items-center justify-center w-8 h-8 rounded-full border hover:bg-gray-50 active:scale-[0.98] transition"
+              className="inline-flex items-center justify-center w-8 h-8 rounded-full border border-white/40 hover:bg-white/20 active:scale-[0.98] transition"
               title="Benachrichtigungen"
             >
               <Image
@@ -198,10 +198,10 @@ export default function HeaderBar() {
                 alt="Benachrichtigungen"
                 width={18}
                 height={18}
-                className="object-contain"
+                className="object-contain brightness-0 invert"
               />
               {unreadNotifs > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[#D04D2E] text-white text-[10px] leading-[18px] text-center">
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-white text-[#D04D2E] text-[10px] font-bold leading-[18px] text-center">
                   {unreadNotifs > 9 ? '9+' : unreadNotifs}
                 </span>
               )}
@@ -215,7 +215,7 @@ export default function HeaderBar() {
               onClick={() => { setOpenProfile(v => !v); setOpenBell(false); setOpenChat(false) }}
               aria-haspopup="menu"
               aria-expanded={openProfile}
-              className="inline-flex items-center justify-center w-8 h-8 rounded-full border hover:bg-gray-50 active:scale-[0.98] transition"
+              className="inline-flex items-center justify-center w-8 h-8 rounded-full border border-white/40 hover:bg-white/20 active:scale-[0.98] transition"
               title="Profil"
             >
               <Image
@@ -223,7 +223,7 @@ export default function HeaderBar() {
                 alt="Profil"
                 width={18}
                 height={18}
-                className="object-contain"
+                className="object-contain brightness-0 invert"
               />
               {/* Warnungs-Badge wenn kein Club vorhanden */}
               {hasClub === false && (

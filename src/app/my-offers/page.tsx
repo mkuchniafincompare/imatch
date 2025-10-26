@@ -118,19 +118,12 @@ export default function MyOffersPage() {
       <BackgroundImage />
       
       <div className="relative z-10 max-w-4xl mx-auto px-4 py-6">
-        {/* Header mit Button */}
-        <div className="flex items-center justify-between mb-6">
+        {/* Header */}
+        <div className="mb-6">
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
             <span>➕</span>
             <span>Meine Spielangebote</span>
           </h1>
-          <a 
-            href="/offer/new" 
-            className="inline-flex items-center gap-2 px-4 py-2 bg-[#D04D2E] text-white rounded-lg hover:bg-[#B83D1E] transition font-semibold shadow-lg text-sm"
-          >
-            <span>➕</span>
-            <span>Erstellen</span>
-          </a>
         </div>
 
         {/* Content */}
@@ -162,28 +155,41 @@ export default function MyOffersPage() {
             </a>
           </div>
         ) : (
-          <div className="space-y-4">
-            {ownOffers.map(offer => {
-              const hasRequests = offer.requestCount && offer.requestCount > 0
-              return (
-                <div 
-                  key={offer.id} 
-                  className={`glass-card overflow-hidden ${hasRequests ? 'ring-2 ring-orange-500 cursor-pointer' : ''}`}
-                  onClick={() => hasRequests ? openRequestsDrawer(offer.id) : null}
-                >
-                  <MatchCard 
-                    {...offer} 
-                    ageLabel={offer.ageLabel || '—'}
-                    savedCount={offer.savedCount}
-                    requestCount={offer.requestCount}
-                    onEditClick={() => router.push(`/offer/edit/${offer.id}`)}
-                    onReserveClick={() => handleToggleReserved(offer.id, offer.isReserved || false)}
-                    isReserved={offer.isReserved}
-                  />
-                </div>
-              )
-            })}
-          </div>
+          <>
+            <div className="space-y-4">
+              {ownOffers.map(offer => {
+                const hasRequests = offer.requestCount && offer.requestCount > 0
+                return (
+                  <div 
+                    key={offer.id} 
+                    className={`glass-card overflow-hidden ${hasRequests ? 'ring-2 ring-orange-500 cursor-pointer' : ''}`}
+                    onClick={() => hasRequests ? openRequestsDrawer(offer.id) : null}
+                  >
+                    <MatchCard 
+                      {...offer} 
+                      ageLabel={offer.ageLabel || '—'}
+                      savedCount={offer.savedCount}
+                      requestCount={offer.requestCount}
+                      onEditClick={() => router.push(`/offer/edit/${offer.id}`)}
+                      onReserveClick={() => handleToggleReserved(offer.id, offer.isReserved || false)}
+                      isReserved={offer.isReserved}
+                    />
+                  </div>
+                )
+              })}
+            </div>
+            
+            {/* Erstellen-Button nach der Liste */}
+            <div className="mt-6 flex justify-center pb-20">
+              <a 
+                href="/offer/new" 
+                className="inline-flex items-center gap-2 px-6 py-3 bg-[#D04D2E] text-white rounded-lg hover:bg-[#B83D1E] transition font-semibold shadow-lg"
+              >
+                <span>➕</span>
+                <span>Neues Spielangebot erstellen</span>
+              </a>
+            </div>
+          </>
         )}
       </div>
 
