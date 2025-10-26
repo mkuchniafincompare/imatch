@@ -204,13 +204,14 @@ export default function MyOffersPage() {
             <div className="space-y-4">
               {ownOffers.map((offer, index) => {
                 const hasRequests = offer.requestCount && offer.requestCount > 0
+                const isMenuOpen = openMenuId === offer.id
                 return (
                   <div 
                     key={offer.id} 
-                    className={`glass-card overflow-hidden relative ${hasRequests ? 'ring-2 ring-orange-500' : ''}`}
+                    className={`glass-card relative ${hasRequests ? 'ring-2 ring-orange-500' : ''}`}
                   >
                     <div 
-                      className={hasRequests ? 'cursor-pointer' : ''}
+                      className={`overflow-hidden rounded-2xl ${hasRequests ? 'cursor-pointer' : ''}`}
                       onClick={() => hasRequests ? openRequestsDrawer(offer.id) : null}
                     >
                       <MatchCard 
@@ -221,11 +222,13 @@ export default function MyOffersPage() {
                     </div>
                     
                     {/* Burger-Menü */}
-                    <div className="absolute bottom-3 right-3 z-10">
+                    <div className="absolute bottom-3 right-3 z-20">
                       <button
+                        id={`burger-${offer.id}`}
                         onClick={(e) => {
+                          e.preventDefault()
                           e.stopPropagation()
-                          setOpenMenuId(openMenuId === offer.id ? null : offer.id)
+                          setOpenMenuId(isMenuOpen ? null : offer.id)
                         }}
                         className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/40 flex items-center justify-center transition"
                         aria-label="Menü"
@@ -236,26 +239,33 @@ export default function MyOffersPage() {
                           <circle cx="10" cy="15" r="1.5" />
                         </svg>
                       </button>
-                      
-                      {openMenuId === offer.id && (
-                        <BurgerMenu
-                          offerId={offer.id}
-                          isReserved={offer.isReserved || false}
-                          isFirstItem={index === 0}
-                          onEdit={() => {
-                            setOpenMenuId(null)
-                            router.push(`/offer/edit/${offer.id}`)
-                          }}
-                          onReserve={() => handleToggleReserved(offer.id, offer.isReserved || false)}
-                          onDelete={() => openDeleteModal(offer.id)}
-                          onClose={() => setOpenMenuId(null)}
-                        />
-                      )}
                     </div>
                   </div>
                 )
               })}
             </div>
+            
+            {/* Burger-Menüs außerhalb der Kacheln rendern */}
+            {ownOffers.map((offer, index) => {
+              const isMenuOpen = openMenuId === offer.id
+              if (!isMenuOpen) return null
+              
+              return (
+                <BurgerMenu
+                  key={`menu-${offer.id}`}
+                  offerId={offer.id}
+                  isReserved={offer.isReserved || false}
+                  isFirstItem={index === 0}
+                  onEdit={() => {
+                    setOpenMenuId(null)
+                    router.push(`/offer/edit/${offer.id}`)
+                  }}
+                  onReserve={() => handleToggleReserved(offer.id, offer.isReserved || false)}
+                  onDelete={() => openDeleteModal(offer.id)}
+                  onClose={() => setOpenMenuId(null)}
+                />
+              )
+            })}
             
             {/* Erstellen-Button nach der Liste */}
             <div className="mt-6 flex justify-center pb-20">
@@ -383,17 +393,31 @@ function BurgerMenu({
   onClose: () => void
 }) {
   const menuRef = useRef<HTMLDivElement>(null)
+  
   useOnClickOutside(menuRef, onClose)
 
-  // Bei erstem Item nach unten öffnen, sonst nach oben
-  const positionClass = isFirstItem 
-    ? "top-full right-0 mt-2" 
-    : "bottom-full right-0 mb-2"
+  // Finde das Burger-Button-Element um das Menü richtig zu positionieren
+  useEffect(() => {
+    const button = document.getElementById(`burger-${offerId}`)
+    if (button && menuRef.current) {
+      const rect = button.getBoundingClientRect()
+      const menu = menuRef.current
+      
+      if (isFirstItem) {
+        // Nach unten öffnen
+        menu.style.top = `${rect.bottom + window.scrollY + 8}px`
+      } else {
+        // Nach oben öffnen
+        menu.style.bottom = `${window.innerHeight - rect.top - window.scrollY + 8}px`
+      }
+      menu.style.right = `${window.innerWidth - rect.right}px`
+    }
+  }, [offerId, isFirstItem])
 
   return (
     <div
       ref={menuRef}
-      className={`absolute ${positionClass} w-48 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden`}
+      className="fixed z-50 w-48 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden"
       onClick={(e) => e.stopPropagation()}
     >
       <button
