@@ -1,10 +1,21 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import BackgroundImage from '@/components/BackgroundImage'
 import MatchCard from '@/components/MatchCard'
 import Drawer from '@/components/Drawer'
+
+function useOnClickOutside(ref: React.RefObject<HTMLElement | null>, handler: () => void) {
+  useEffect(() => {
+    function listener(e: MouseEvent) {
+      if (!ref.current || ref.current.contains(e.target as Node)) return
+      handler()
+    }
+    document.addEventListener('mousedown', listener)
+    return () => document.removeEventListener('mousedown', listener)
+  }, [ref, handler])
+}
 
 interface MatchItem {
   id: string
@@ -35,6 +46,10 @@ export default function MyOffersPage() {
   const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null)
   const [offerRequests, setOfferRequests] = useState<any[]>([])
   const [loadingRequests, setLoadingRequests] = useState(false)
+  
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [offerToDelete, setOfferToDelete] = useState<string | null>(null)
 
   useEffect(() => {
     fetchOwnOffers()
@@ -108,8 +123,38 @@ export default function MyOffersPage() {
           o.id === offerId ? { ...o, isReserved: !currentReserved } : o
         ))
       }
+      setOpenMenuId(null)
     } catch (e: any) {
       console.error('Toggle reserved failed:', e)
+    }
+  }
+
+  function openDeleteModal(offerId: string) {
+    setOfferToDelete(offerId)
+    setDeleteModalOpen(true)
+    setOpenMenuId(null)
+  }
+
+  async function handleDelete() {
+    if (!offerToDelete) return
+    
+    try {
+      const res = await fetch('/api/offer/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ offerId: offerToDelete }),
+      })
+
+      if (res.ok) {
+        setOwnOffers(prev => prev.filter(o => o.id !== offerToDelete))
+        setDeleteModalOpen(false)
+        setOfferToDelete(null)
+      } else {
+        alert('Fehler beim Löschen des Spiels')
+      }
+    } catch (e: any) {
+      console.error('Delete failed:', e)
+      alert('Fehler beim Löschen des Spiels')
     }
   }
 
@@ -162,18 +207,56 @@ export default function MyOffersPage() {
                 return (
                   <div 
                     key={offer.id} 
-                    className={`glass-card overflow-hidden ${hasRequests ? 'ring-2 ring-orange-500 cursor-pointer' : ''}`}
-                    onClick={() => hasRequests ? openRequestsDrawer(offer.id) : null}
+                    className={`glass-card overflow-hidden relative ${hasRequests ? 'ring-2 ring-orange-500' : ''}`}
                   >
-                    <MatchCard 
-                      {...offer} 
-                      ageLabel={offer.ageLabel || '—'}
-                      savedCount={offer.savedCount}
-                      requestCount={offer.requestCount}
-                      onEditClick={() => router.push(`/offer/edit/${offer.id}`)}
-                      onReserveClick={() => handleToggleReserved(offer.id, offer.isReserved || false)}
-                      isReserved={offer.isReserved}
-                    />
+                    {/* Reserviert-Banner */}
+                    {offer.isReserved && (
+                      <div className="absolute top-3 left-3 z-10 bg-amber-400 text-amber-900 text-xs font-bold px-2 py-1 rounded shadow-md">
+                        Reserviert
+                      </div>
+                    )}
+                    
+                    <div 
+                      className={hasRequests ? 'cursor-pointer' : ''}
+                      onClick={() => hasRequests ? openRequestsDrawer(offer.id) : null}
+                    >
+                      <MatchCard 
+                        {...offer} 
+                        ageLabel={offer.ageLabel || '—'}
+                      />
+                    </div>
+                    
+                    {/* Burger-Menü */}
+                    <div className="absolute bottom-3 right-3 z-10">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setOpenMenuId(openMenuId === offer.id ? null : offer.id)
+                        }}
+                        className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/40 flex items-center justify-center transition"
+                        aria-label="Menü"
+                      >
+                        <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <circle cx="10" cy="5" r="1.5" />
+                          <circle cx="10" cy="10" r="1.5" />
+                          <circle cx="10" cy="15" r="1.5" />
+                        </svg>
+                      </button>
+                      
+                      {openMenuId === offer.id && (
+                        <BurgerMenu
+                          offerId={offer.id}
+                          isReserved={offer.isReserved || false}
+                          onEdit={() => {
+                            setOpenMenuId(null)
+                            router.push(`/offer/edit/${offer.id}`)
+                          }}
+                          onReserve={() => handleToggleReserved(offer.id, offer.isReserved || false)}
+                          onDelete={() => openDeleteModal(offer.id)}
+                          onClose={() => setOpenMenuId(null)}
+                        />
+                      )}
+                    </div>
                   </div>
                 )
               })}
@@ -192,6 +275,35 @@ export default function MyOffersPage() {
           </>
         )}
       </div>
+
+      {/* Delete Modal */}
+      {deleteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-3">Spiel löschen?</h3>
+            <p className="text-gray-700 mb-6">
+              Möchtest du dieses Spielangebot wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setDeleteModalOpen(false)
+                  setOfferToDelete(null)
+                }}
+                className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 font-medium"
+              >
+                Abbrechen
+              </button>
+              <button
+                onClick={handleDelete}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium"
+              >
+                Löschen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Request Drawer */}
       <Drawer
@@ -255,5 +367,54 @@ export default function MyOffersPage() {
         )}
       </Drawer>
     </main>
+  )
+}
+
+function BurgerMenu({
+  offerId,
+  isReserved,
+  onEdit,
+  onReserve,
+  onDelete,
+  onClose,
+}: {
+  offerId: string
+  isReserved: boolean
+  onEdit: () => void
+  onReserve: () => void
+  onDelete: () => void
+  onClose: () => void
+}) {
+  const menuRef = useRef<HTMLDivElement>(null)
+  useOnClickOutside(menuRef, onClose)
+
+  return (
+    <div
+      ref={menuRef}
+      className="absolute bottom-full right-0 mb-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <button
+        onClick={onEdit}
+        className="w-full text-left px-4 py-3 hover:bg-gray-50 text-sm text-gray-900 flex items-center gap-2 border-b border-gray-100"
+      >
+        <span>✏️</span>
+        <span>Bearbeiten</span>
+      </button>
+      <button
+        onClick={onReserve}
+        className="w-full text-left px-4 py-3 hover:bg-gray-50 text-sm text-gray-900 flex items-center gap-2 border-b border-gray-100"
+      >
+        <span>{isReserved ? '🔓' : '🔒'}</span>
+        <span>{isReserved ? 'Freigeben' : 'Reservieren'}</span>
+      </button>
+      <button
+        onClick={onDelete}
+        className="w-full text-left px-4 py-3 hover:bg-red-50 text-sm text-red-600 flex items-center gap-2"
+      >
+        <span>🗑️</span>
+        <span>Spiel löschen</span>
+      </button>
+    </div>
   )
 }
