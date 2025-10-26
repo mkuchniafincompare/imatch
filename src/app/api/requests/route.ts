@@ -29,7 +29,10 @@ export async function GET(req: Request) {
     }
 
     const rows = await prisma.offerRequest.findMany({
-      where: { requesterUserId: userId },
+      where: { 
+        requesterUserId: userId,
+        status: 'PENDING',
+      },
       select: { offerId: true, status: true, createdAt: true },
       orderBy: { createdAt: 'desc' },
     })
