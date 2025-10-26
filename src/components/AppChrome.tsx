@@ -115,7 +115,7 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
               className={`flex flex-col items-center justify-center gap-0.5 px-1 relative ${pathname === '/saved-offers' ? 'text-amber-500 font-semibold' : 'text-gray-600'}`}
             >
               <div className="text-base">⭐</div>
-              <div className="text-center leading-tight">Merkliste</div>
+              <div className="text-center leading-tight">Meine Merkliste</div>
               {badges.savedOffers > 0 && (
                 <div className="absolute top-1 right-1 bg-amber-500 text-white text-[8px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
                   {badges.savedOffers > 9 ? '9+' : badges.savedOffers}
