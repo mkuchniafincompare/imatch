@@ -25,6 +25,8 @@ type Props = {
   address?: string | null
   pendingRequestCount?: number
   isOwner?: boolean
+  // Cancel function
+  onCancel?: () => void
 }
 
 export default function ConfirmedMatchCard({
@@ -33,6 +35,7 @@ export default function ConfirmedMatchCard({
   date, kickoffTime, kickoffFlexible,
   homeAway, notes, playTime, strengthLabel, address,
   pendingRequestCount, isOwner,
+  onCancel,
 }: Props) {
   const dateFmt = date
     ? new Date(date).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' })
@@ -141,6 +144,22 @@ export default function ConfirmedMatchCard({
               {pendingRequestCount} {pendingRequestCount === 1 ? 'Anfrage offen' : 'Anfragen offen'}
             </span>
           </div>
+        </div>
+      )}
+
+      {/* Cancel Button */}
+      {onCancel && (
+        <div className="mt-3 pt-3 border-t border-white/15">
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onCancel()
+            }}
+            className="w-full inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm bg-red-500/20 text-red-200 hover:bg-red-500/30 font-medium transition"
+          >
+            <span>🚫</span>
+            <span>Spiel absagen</span>
+          </button>
         </div>
       )}
     </div>

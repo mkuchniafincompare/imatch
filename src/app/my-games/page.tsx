@@ -6,6 +6,7 @@ import MatchCard from '@/components/MatchCard'
 import ConfirmedMatchCard from '@/components/ConfirmedMatchCard'
 import Drawer from '@/components/Drawer'
 import ConfirmModal from '@/components/ConfirmModal'
+import CancelMatchModal from '@/components/CancelMatchModal'
 
 type Tab = 'own' | 'saved' | 'requested' | 'confirmed'
 
@@ -54,6 +55,8 @@ export default function MyGamesPage() {
   const [loadingRequests, setLoadingRequests] = useState(false)
   const [withdrawModalOpen, setWithdrawModalOpen] = useState(false)
   const [offerIdToWithdraw, setOfferIdToWithdraw] = useState<string | null>(null)
+  const [cancelModalOpen, setCancelModalOpen] = useState(false)
+  const [offerIdToCancel, setOfferIdToCancel] = useState<string | null>(null)
 
   useEffect(() => {
     fetchAllData()
@@ -297,6 +300,35 @@ export default function MyGamesPage() {
     }
   }
 
+  function handleOpenCancelModal(offerId: string) {
+    setOfferIdToCancel(offerId)
+    setCancelModalOpen(true)
+  }
+
+  async function handleCancelMatch(reason: string) {
+    if (!offerIdToCancel) return
+
+    try {
+      const res = await fetch('/api/requests/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          offerId: offerIdToCancel,
+          reason: reason || undefined,
+        }),
+      })
+
+      if (res.ok) {
+        // Remove from confirmed offers
+        setConfirmedOffers(prev => prev.filter(o => o.id !== offerIdToCancel))
+        setCancelModalOpen(false)
+        setOfferIdToCancel(null)
+      }
+    } catch (e: any) {
+      console.error('Cancel match failed:', e)
+    }
+  }
+
   // Filter: Wenn ein Spiel angefragt wurde, nicht mehr bei "Gemerkt" anzeigen
   const filteredSavedOffers = savedOffers.filter(offer => 
     !requestedOffers.some(req => req.id === offer.id)
@@ -472,6 +504,7 @@ export default function MyGamesPage() {
                       address={offer.address}
                       pendingRequestCount={offer.pendingRequestCount}
                       isOwner={offer.isOwner}
+                      onCancel={() => handleOpenCancelModal(offer.id)}
                     />
                   ) : (
                     <MatchCard 
@@ -651,6 +684,13 @@ export default function MyGamesPage() {
         message="Möchtest du die Anfrage wirklich zurückziehen? Der Anbieter wird darüber per E-Mail, Nachricht und Benachrichtigung informiert."
         confirmText="Ja"
         cancelText="Nein"
+      />
+
+      {/* Cancel Match Modal */}
+      <CancelMatchModal
+        open={cancelModalOpen}
+        onClose={() => setCancelModalOpen(false)}
+        onConfirm={handleCancelMatch}
       />
     </main>
   )

@@ -96,6 +96,7 @@ enum NotificationType {
   REQUEST_RECEIVED  // Jemand hat dein Angebot angefragt
   REQUEST_ACCEPTED  // Deine Anfrage wurde akzeptiert
   REQUEST_REJECTED  // Deine Anfrage wurde abgelehnt
+  REQUEST_CANCELED  // Ein vereinbartes Spiel wurde abgesagt
   OFFER_UPDATED     // Ein gespeichertes Angebot wurde aktualisiert
   MATCH_CONFIRMED   // Spieltermin bestätigt
 }
