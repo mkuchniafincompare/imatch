@@ -40,9 +40,20 @@ export async function GET(req: Request) {
       return NextResponse.json({ savedIds: rows.map(r => r.offerId) })
     }
 
-    // Return all saved offer ids for this user
+    // Return all saved offer ids for this user, excluding offers with accepted requests
     const rows = await prisma.savedOffer.findMany({
-      where: { userId },
+      where: { 
+        userId,
+        // Exclude offers where user has an accepted request
+        offer: {
+          requests: {
+            none: {
+              requesterUserId: userId,
+              status: 'ACCEPTED',
+            },
+          },
+        },
+      },
       select: { offerId: true, createdAt: true },
       orderBy: { createdAt: 'desc' },
     })

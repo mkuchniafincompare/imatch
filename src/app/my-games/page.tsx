@@ -26,6 +26,7 @@ interface MatchItem {
   savedCount?: number
   requestCount?: number
   pendingRequestCount?: number
+  isReserved?: boolean
   // For confirmed matches
   opponentClubName?: string
   opponentAgeLabel?: string | null
@@ -483,7 +484,7 @@ export default function MyGamesPage() {
                   {activeTab === 'own' && (
                     <div className="px-3 pb-3 pt-2 border-t border-white/15">
                       {/* Badges Zeile */}
-                      {(offer.savedCount > 0 || offer.requestCount > 0) && (
+                      {((offer.savedCount ?? 0) > 0 || (offer.requestCount ?? 0) > 0) && (
                         <div className="flex flex-wrap gap-2 mb-2">
                           {offer.savedCount !== undefined && offer.savedCount > 0 && (
                             <div className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm bg-green-500/20 text-green-200">
