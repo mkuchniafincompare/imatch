@@ -57,9 +57,47 @@ export async function GET(req: Request) {
       select: { offerId: true, createdAt: true },
       orderBy: { createdAt: 'desc' },
     })
+    
+    // Auto-cleanup: Remove saved offers where the match date/time has passed
+    const now = new Date()
+    
+    // Fetch all offer details in one query for better performance
+    const offerIds = rows.map(r => r.offerId)
+    const offers = await prisma.gameOffer.findMany({
+      where: { id: { in: offerIds } },
+      select: { id: true, offerDate: true, kickoffTime: true },
+    })
+    
+    // Determine which offers are expired
+    const expiredIds: string[] = []
+    for (const offer of offers) {
+      if (offer.offerDate && offer.kickoffTime) {
+        const [hours, minutes] = offer.kickoffTime.split(':').map(Number)
+        const offerDateTime = new Date(offer.offerDate)
+        offerDateTime.setHours(hours, minutes, 0, 0)
+        
+        if (offerDateTime < now) {
+          expiredIds.push(offer.id)
+        }
+      }
+    }
+    
+    // Delete expired saved offers
+    if (expiredIds.length > 0) {
+      await prisma.savedOffer.deleteMany({
+        where: {
+          userId,
+          offerId: { in: expiredIds },
+        },
+      }).catch(() => null)
+    }
+    
+    // Filter out expired offers from results
+    const validRows = rows.filter(r => !expiredIds.includes(r.offerId))
+    
     return NextResponse.json({
-      savedIds: rows.map(r => r.offerId),
-      count: rows.length,
+      savedIds: validRows.map(r => r.offerId),
+      count: validRows.length,
     })
   } catch (e: any) {
     return NextResponse.json({ error: e?.message ?? 'Serverfehler' }, { status: 500 })

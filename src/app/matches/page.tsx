@@ -272,7 +272,7 @@ export default function MatchesPage() {
         // ignore errors
       }
     })()
-  }, [items.length])
+  }, [items])
 
     // Nachdem items geladen sind: bereits angefragte Offers markieren
   useEffect(() => {
@@ -289,7 +289,7 @@ export default function MatchesPage() {
         // Ignorieren – UI bleibt funktionsfähig
       }
     })()
-  }, [items.length])
+  }, [items])
 
   function toggleHomeAway(val: Exclude<HomeAway, null>) {
     setHomeAway((prev) => (prev === val ? null : val))

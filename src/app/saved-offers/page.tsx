@@ -152,45 +152,7 @@ export default function SavedOffersPage() {
     }
   }
 
-  // Filter: Automatisch abgelaufene Angebote entfernen
-  useEffect(() => {
-    const now = new Date()
-    const expired: string[] = []
-    
-    savedOffers.forEach(offer => {
-      if (offer.date && offer.kickoffTime) {
-        const [hours, minutes] = offer.kickoffTime.split(':').map(Number)
-        const offerDateTime = new Date(offer.date)
-        offerDateTime.setHours(hours, minutes, 0, 0)
-        
-        if (offerDateTime < now) {
-          expired.push(offer.id)
-        }
-      }
-    })
-
-    if (expired.length > 0) {
-      // Entferne abgelaufene Angebote von Merkliste
-      expired.forEach(async (offerId) => {
-        try {
-          await fetch('/api/saved-offers', {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ offerId }),
-          })
-        } catch (e) {
-          console.error('Failed to remove expired offer:', e)
-        }
-      })
-      
-      setSavedOffers(prev => prev.filter(o => !expired.includes(o.id)))
-      setSavedIds(prev => {
-        const newSet = new Set(prev)
-        expired.forEach(id => newSet.delete(id))
-        return newSet
-      })
-    }
-  }, [savedOffers])
+  // Auto-cleanup wird jetzt auf dem Server durchgeführt (in der API)
 
   // Filter: Wenn ein Spiel angefragt wurde, nicht mehr bei "Gemerkt" anzeigen
   const filteredSavedOffers = savedOffers.filter(offer => !requestedIds.has(offer.id))
