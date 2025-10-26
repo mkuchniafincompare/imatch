@@ -58,8 +58,9 @@ export async function GET(req: Request) {
       orderBy: { createdAt: 'desc' },
     })
     
-    // Auto-cleanup: Remove saved offers where the match date/time has passed
+    // Auto-cleanup: Remove saved offers that are more than 24 hours past their match time
     const now = new Date()
+    const gracePeriodMs = 24 * 60 * 60 * 1000 // 24 hours in milliseconds
     
     // Fetch all offer details in one query for better performance
     const offerIds = rows.map(r => r.offerId)
@@ -68,7 +69,7 @@ export async function GET(req: Request) {
       select: { id: true, offerDate: true, kickoffTime: true },
     })
     
-    // Determine which offers are expired
+    // Determine which offers are expired (more than 24h past kickoff)
     const expiredIds: string[] = []
     for (const offer of offers) {
       if (offer.offerDate && offer.kickoffTime) {
@@ -76,7 +77,8 @@ export async function GET(req: Request) {
         const offerDateTime = new Date(offer.offerDate)
         offerDateTime.setHours(hours, minutes, 0, 0)
         
-        if (offerDateTime < now) {
+        // Only remove if match was more than 24 hours ago
+        if (now.getTime() - offerDateTime.getTime() > gracePeriodMs) {
           expiredIds.push(offer.id)
         }
       }
