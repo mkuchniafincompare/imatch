@@ -394,7 +394,7 @@ export default function MatchesPage() {
   }
 
   return (
-    <main className="relative min-h-screen">
+    <main className="relative min-h-screen pt-12">
       {/* Dezent überlagerter Seitenhintergrund */}
       <BackgroundImage src="/back2.jpg" />
 
@@ -457,6 +457,8 @@ export default function MatchesPage() {
                 strengthLabel={it.strengthLabel}
                 address={it.address}
                 logoUrl={it.logoUrl}
+                isSaved={isSaved(it.id)}
+                isRequested={isRequested(it.id)}
               />
               
               {/* Burger-Menü */}

@@ -28,13 +28,15 @@ type Props = {
   onEdit?: () => void
   isReserved?: boolean
   requestCount?: number
+  isSaved?: boolean
+  isRequested?: boolean
 }
 
 export default function MatchCard({
   clubName, ageLabel, year,
   date, kickoffTime, kickoffFlexible,
   homeAway, notes, playTime, strengthLabel, address, logoUrl,
-  isOwner, onEdit, isReserved, requestCount,
+  isOwner, onEdit, isReserved, requestCount, isSaved, isRequested,
 }: Props) {
   const dateFmt = date
     ? new Date(date).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' })
@@ -45,25 +47,39 @@ export default function MatchCard({
 
   const normalizedCount = requestCount ?? 0
   const showRequests = normalizedCount > 0
-  const hasLabels = Boolean(isReserved) || showRequests
+  const hasLabels = Boolean(isReserved) || showRequests || Boolean(isSaved) || Boolean(isRequested)
 
   return (
     // Kein fester Hintergrund hier, damit der "Glass"-Wrapper der Seite wirkt
     <div className="relative overflow-hidden rounded-2xl px-3 py-3">
       
-      {/* Labels-Zeile: Reserviert (links) und Anfragen (rechts) */}
+      {/* Labels-Zeile: Reserviert, Gemerkt (links) und Anfragen, Angefragt (rechts) */}
       {hasLabels && (
         <div className="mb-2 flex items-center justify-between gap-2">
-          {isReserved && (
-            <span className="inline-block bg-amber-400 text-amber-900 text-xs font-bold px-2 py-1 rounded shadow-md">
-              Reserviert
-            </span>
-          )}
-          {showRequests && (
-            <span className="inline-block bg-red-500 text-white text-xs font-bold px-2 py-1 rounded shadow-md ml-auto">
-              {normalizedCount === 1 ? '1 Anfrage' : `${normalizedCount} Anfragen`}
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {isReserved && (
+              <span className="inline-block bg-amber-400 text-amber-900 text-xs font-bold px-2 py-1 rounded shadow-md">
+                Reserviert
+              </span>
+            )}
+            {isSaved && (
+              <span className="inline-block bg-yellow-400 text-yellow-900 text-xs font-bold px-2 py-1 rounded shadow-md">
+                Gemerkt
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2 ml-auto">
+            {showRequests && (
+              <span className="inline-block bg-red-500 text-white text-xs font-bold px-2 py-1 rounded shadow-md">
+                {normalizedCount === 1 ? '1 Anfrage' : `${normalizedCount} Anfragen`}
+              </span>
+            )}
+            {isRequested && (
+              <span className="inline-block bg-red-500 text-white text-xs font-bold px-2 py-1 rounded shadow-md">
+                Angefragt
+              </span>
+            )}
+          </div>
         </div>
       )}
 
