@@ -260,17 +260,9 @@ export default function MyOffersPage() {
                         {...offer} 
                         ageLabel={offer.ageLabel || '—'}
                         isReserved={offer.isReserved}
+                        requestCount={offer.requestCount}
                       />
                     </div>
-                    
-                    {/* Label "x mal angefragt" */}
-                    {hasRequests && (
-                      <div className="absolute top-3 right-3 z-20">
-                        <div className="px-3 py-1 bg-red-500 text-white text-xs font-bold rounded-full shadow-lg">
-                          {offer.requestCount === 1 ? '1 Anfrage' : `${offer.requestCount} Anfragen`}
-                        </div>
-                      </div>
-                    )}
                     
                     {/* Burger-Menü */}
                     <div className="absolute bottom-3 right-3 z-20">

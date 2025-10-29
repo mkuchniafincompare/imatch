@@ -27,13 +27,14 @@ type Props = {
   isOwner?: boolean
   onEdit?: () => void
   isReserved?: boolean
+  requestCount?: number
 }
 
 export default function MatchCard({
   clubName, ageLabel, year,
   date, kickoffTime, kickoffFlexible,
   homeAway, notes, playTime, strengthLabel, address, logoUrl,
-  isOwner, onEdit, isReserved,
+  isOwner, onEdit, isReserved, requestCount,
 }: Props) {
   const dateFmt = date
     ? new Date(date).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' })
@@ -68,6 +69,15 @@ export default function MatchCard({
         <div className="mb-2 pr-16">
           <span className="inline-block bg-amber-400 text-amber-900 text-xs font-bold px-2 py-1 rounded shadow-md">
             Reserviert
+          </span>
+        </div>
+      )}
+
+      {/* Anfragen-Banner in eigener Zeile */}
+      {requestCount && requestCount > 0 && (
+        <div className="mb-2 pr-16">
+          <span className="inline-block bg-red-500 text-white text-xs font-bold px-2 py-1 rounded shadow-md">
+            {requestCount === 1 ? '1 Anfrage' : `${requestCount} Anfragen`}
           </span>
         </div>
       )}
