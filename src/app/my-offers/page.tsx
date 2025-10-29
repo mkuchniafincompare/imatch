@@ -130,11 +130,20 @@ export default function MyOffersPage() {
       })
 
       if (res.ok) {
+        const isAccept = respondAction.action === 'accept'
+        
         setDrawerView('list')
         setRespondAction(null)
         setRespondMessage('')
         setRequestDrawerOpen(false)
-        fetchOwnOffers()
+        
+        // Angebote aktualisieren
+        await fetchOwnOffers()
+        
+        // Bei Akzeptieren zu confirmed-matches weiterleiten
+        if (isAccept) {
+          router.push('/confirmed-matches')
+        }
       }
     } catch (e: any) {
       console.error('Failed to respond:', e)

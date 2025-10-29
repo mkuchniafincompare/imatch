@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 
 type Props = {
@@ -27,6 +27,8 @@ type Props = {
   isOwner?: boolean
   // Cancel function
   onCancel?: () => void
+  // Contact function
+  onContact?: () => void
 }
 
 export default function ConfirmedMatchCard({
@@ -36,14 +38,29 @@ export default function ConfirmedMatchCard({
   homeAway, notes, playTime, strengthLabel, address,
   pendingRequestCount, isOwner,
   onCancel,
+  onContact,
 }: Props) {
   const dateFmt = date
     ? new Date(date).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' })
     : '—'
   const timeFmt = kickoffTime || '—'
 
-  const [imgErr1, setImgErr1] = React.useState(false)
-  const [imgErr2, setImgErr2] = React.useState(false)
+  const [imgErr1, setImgErr1] = useState(false)
+  const [imgErr2, setImgErr2] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false)
+      }
+    }
+    if (menuOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [menuOpen])
 
   return (
     <div className="relative overflow-hidden rounded-2xl px-4 py-4">
@@ -147,19 +164,60 @@ export default function ConfirmedMatchCard({
         </div>
       )}
 
-      {/* Cancel Button */}
+      {/* Action Buttons */}
       {onCancel && (
         <div className="mt-3 pt-3 border-t border-white/15">
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              onCancel()
-            }}
-            className="w-full inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm bg-red-500/20 text-red-200 hover:bg-red-500/30 font-medium transition"
-          >
-            <span>🚫</span>
-            <span>Spiel absagen</span>
-          </button>
+          <div className="flex gap-3 items-center">
+            {/* Cancel Button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onCancel()
+              }}
+              className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm bg-red-500/20 text-red-200 hover:bg-red-500/30 font-medium transition"
+            >
+              <span>🚫</span>
+              <span>Spiel absagen</span>
+            </button>
+
+            {/* Context Menu (Burger) */}
+            <div className="relative" ref={menuRef}>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setMenuOpen(!menuOpen)
+                }}
+                className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/40 flex items-center justify-center transition"
+                aria-label="Menü"
+              >
+                <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <circle cx="10" cy="5" r="1.5" />
+                  <circle cx="10" cy="10" r="1.5" />
+                  <circle cx="10" cy="15" r="1.5" />
+                </svg>
+              </button>
+
+              {/* Dropdown Menu */}
+              {menuOpen && (
+                <div 
+                  className="absolute right-0 bottom-full mb-2 w-56 bg-white/95 backdrop-blur-xl rounded-xl shadow-2xl border border-white/40 py-2 z-50"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setMenuOpen(false)
+                      if (onContact) onContact()
+                    }}
+                    className="w-full px-4 py-3 text-left text-gray-700 hover:bg-gray-100 transition flex items-center gap-3"
+                  >
+                    <span className="text-lg">📧</span>
+                    <span className="font-medium">Trainer kontaktieren</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
