@@ -73,7 +73,7 @@ export default function MatchCard({
           <div className="flex items-center gap-2">
             <div className="font-medium text-sm text-white">{clubName}</div>
             <Badge>{ageLabel}</Badge>
-            {year ? <Badge>{year}</Badge> : null}
+            {year && year > 0 ? <Badge>{year}</Badge> : null}
           </div>
 
           {/* Erste Zeile: Datum • Uhrzeit (+ flexibel) */}
