@@ -52,15 +52,25 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
           )
         }
 
+        // Für "Meine Merkliste" müssen wir die bereits angefragten Spiele herausfiltern
+        let savedIds: string[] = []
+        let requestedIds: string[] = []
+        
         if (savedRes?.ok) {
           const data = await savedRes.json()
-          counts.savedOffers = (data.savedIds || []).length
+          savedIds = data.savedIds || []
         }
 
         if (requestsRes?.ok) {
           const data = await requestsRes.json()
-          counts.myRequests = (data.requestedIds || []).length
+          requestedIds = data.requestedIds || []
+          counts.myRequests = requestedIds.length
         }
+
+        // Badge für "Meine Merkliste" zeigt nur Spiele, die NICHT bereits angefragt wurden
+        const requestedSet = new Set(requestedIds)
+        const visibleSavedOffers = savedIds.filter(id => !requestedSet.has(id))
+        counts.savedOffers = visibleSavedOffers.length
 
         if (confirmedRes?.ok) {
           const data = await confirmedRes.json()
