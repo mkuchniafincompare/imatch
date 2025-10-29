@@ -264,8 +264,18 @@ export default function MyOffersPage() {
                       onClick={() => hasRequests ? openRequestsDrawer(offer.id) : null}
                     >
                       <MatchCard 
-                        {...offer} 
+                        clubName={offer.clubName}
                         ageLabel={offer.ageLabel || '—'}
+                        year={offer.year}
+                        date={offer.date}
+                        kickoffTime={offer.kickoffTime}
+                        kickoffFlexible={offer.kickoffFlexible}
+                        homeAway={offer.homeAway}
+                        notes={offer.notes}
+                        playTime={offer.playTime}
+                        strengthLabel={offer.strengthLabel}
+                        address={offer.address}
+                        logoUrl={offer.logoUrl}
                         isReserved={offer.isReserved}
                         requestCount={offer.requestCount}
                       />
