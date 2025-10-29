@@ -68,7 +68,7 @@ export default function MyOffersPage() {
   const [reserveAction, setReserveAction] = useState<{ offerId: string; isCurrentlyReserved: boolean } | null>(null)
   
   const [drawerView, setDrawerView] = useState<'list' | 'confirm'>('list')
-  const [respondAction, setRespondAction] = useState<{ requesterId: string; action: 'accept' | 'reject'; requesterName: string } | null>(null)
+  const [respondAction, setRespondAction] = useState<{ requesterId: string; action: 'accept' | 'reject'; requesterName: string; clubName: string } | null>(null)
   const [respondMessage, setRespondMessage] = useState('')
 
   useEffect(() => {
@@ -109,8 +109,8 @@ export default function MyOffersPage() {
     }
   }
 
-  function openRespondConfirm(requesterId: string, action: 'accept' | 'reject', requesterName: string) {
-    setRespondAction({ requesterId, action, requesterName })
+  function openRespondConfirm(requesterId: string, action: 'accept' | 'reject', requesterName: string, clubName: string) {
+    setRespondAction({ requesterId, action, requesterName, clubName })
     setRespondMessage('')
     setDrawerView('confirm')
   }
@@ -447,13 +447,13 @@ export default function MyOffersPage() {
                     {req.status === 'PENDING' && (
                       <div className="flex gap-2 mt-3">
                         <button
-                          onClick={() => openRespondConfirm(req.requesterId, 'accept', req.requesterName)}
+                          onClick={() => openRespondConfirm(req.requesterId, 'accept', req.requesterName, req.clubName)}
                           className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium"
                         >
                           Akzeptieren
                         </button>
                         <button
-                          onClick={() => openRespondConfirm(req.requesterId, 'reject', req.requesterName)}
+                          onClick={() => openRespondConfirm(req.requesterId, 'reject', req.requesterName, req.clubName)}
                           className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium"
                         >
                           Ablehnen
@@ -471,6 +471,7 @@ export default function MyOffersPage() {
             <div className="space-y-4">
               <div className="p-4 bg-white/50 backdrop-blur-sm rounded-xl border border-white/60 shadow-sm">
                 <div className="font-semibold text-gray-900 mb-1">{respondAction.requesterName}</div>
+                <div className="text-sm text-gray-600 mb-2">{respondAction.clubName}</div>
                 <div className="text-sm text-gray-700">
                   Du bist dabei, diese Anfrage zu {respondAction.action === 'accept' ? 'akzeptieren' : 'ablehnen'}.
                 </div>
