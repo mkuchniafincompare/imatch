@@ -51,7 +51,7 @@ export default function MatchCard({
       
       {/* Labels-Zeile: Reserviert (links) und Anfragen (rechts) */}
       {hasLabels && (
-        <div className="mb-2 flex items-center justify-between gap-2 pr-16">
+        <div className="mb-2 flex items-center justify-between gap-2">
           {isReserved && (
             <span className="inline-block bg-amber-400 text-amber-900 text-xs font-bold px-2 py-1 rounded shadow-md">
               Reserviert
@@ -65,79 +65,83 @@ export default function MatchCard({
         </div>
       )}
 
-      {/* Logo rechts - über mehrere Zeilen */}
-      <div className="absolute right-3 top-3 w-12 h-12 rounded-md overflow-hidden bg-white/15 backdrop-blur-[1px] grid place-items-center">
-        {logoUrl && !imgErr ? (
-          <Image
-            src={logoUrl}
-            alt={clubName ? `Logo ${clubName}` : 'Vereinslogo'}
-            width={48}
-            height={48}
-            className="object-cover w-full h-full"
-            onError={() => setImgErr(true)}
-            priority={false}
-          />
-        ) : (
-          <span className="text-[10px] text-white/70">Logo</span>
-        )}
-      </div>
+      {/* Content-Bereich mit Logo rechts */}
+      <div className="flex gap-3">
+        {/* Linke Seite: Alle Infos */}
+        <div className="flex-1 min-w-0">
+          {/* Kopf: Clubname + Badges */}
+          <div className="flex items-center gap-2">
+            <div className="font-medium text-sm text-white">{clubName}</div>
+            <Badge>{ageLabel}</Badge>
+            {year ? <Badge>{year}</Badge> : null}
+          </div>
 
-      {/* Kopf: Clubname + Badges */}
-      <div className="pr-16">
-        <div className="flex items-center gap-2">
-          <div className="font-medium text-sm text-white">{clubName}</div>
-          <Badge>{ageLabel}</Badge>
-          {year ? <Badge>{year}</Badge> : null}
-        </div>
-      </div>
+          {/* Erste Zeile: Datum • Uhrzeit (+ flexibel) */}
+          <div className="mt-1 text-[12px] text-white/90 flex flex-wrap items-center gap-2">
+            <span aria-hidden>📅</span>
+            <span>{dateFmt}</span>
 
-      {/* Erste Zeile: Datum • Uhrzeit (+ flexibel) */}
-      <div className="mt-1 text-[12px] text-white/90 flex flex-wrap items-center gap-2">
-        <span aria-hidden>📅</span>
-        <span>{dateFmt}</span>
+            <span aria-hidden>⏰</span>
+            <span>{timeFmt}</span>
+            {kickoffFlexible && <Badge>flexibel</Badge>}
+          </div>
 
-        <span aria-hidden>⏰</span>
-        <span>{timeFmt}</span>
-        {kickoffFlexible && <Badge>flexibel</Badge>}
-      </div>
+          {/* Zweite Zeile: Spielzeit • Heim/Auswärts */}
+          <div className="mt-1 text-[12px] text-white/90 flex flex-wrap items-center gap-2">
+            {playTime && (
+              <>
+                <span aria-label="Spielzeit">⏱️ {playTime}</span>
+                <span aria-hidden>•</span>
+              </>
+            )}
+            
+            {homeAway === 'HOME' && <Badge>Heim</Badge>}
+            {homeAway === 'AWAY' && <Badge>Auswärts</Badge>}
+            {homeAway === 'FLEX' && <Badge>Heim / Auswärts</Badge>}
+          </div>
 
-      {/* Zweite Zeile: Spielzeit • Heim/Auswärts */}
-      <div className="mt-1 text-[12px] text-white/90 flex flex-wrap items-center gap-2">
-        {playTime && (
-          <>
-            <span aria-label="Spielzeit">⏱️ {playTime}</span>
-            <span aria-hidden>•</span>
-          </>
-        )}
-        
-        {homeAway === 'HOME' && <Badge>Heim</Badge>}
-        {homeAway === 'AWAY' && <Badge>Auswärts</Badge>}
-        {homeAway === 'FLEX' && <Badge>Heim / Auswärts</Badge>}
-      </div>
+          {/* Notizen */}
+          {notes && (
+            <div className="mt-2 text-[12px] text-white">
+              <div className="flex items-start gap-2">
+                <span aria-hidden>📝</span>
+                <p className="leading-snug">{notes}</p>
+              </div>
+            </div>
+          )}
 
-      {/* Notizen */}
-      {notes && (
-        <div className="mt-2 text-[12px] text-white">
-          <div className="flex items-start gap-2">
-            <span aria-hidden>📝</span>
-            <p className="leading-snug">{notes}</p>
+          {/* Fuß */}
+          <div className="mt-3 space-y-2 pb-2">
+            {/* Stärke-Badge */}
+            {strengthLabel && (
+              <div className="flex items-center gap-2 text-[12px] text-white/90">
+                <Badge>{strengthLabel}</Badge>
+              </div>
+            )}
+            
+            {/* Adresse in eigener Zeile */}
+            <div className="flex items-center gap-1 text-[12px] text-white/80 pr-10">
+              <span aria-hidden>📍</span>
+              <span className="truncate">{address || '—'}</span>
+            </div>
           </div>
         </div>
-      )}
 
-      {/* Fuß */}
-      <div className="mt-3 space-y-2 pb-2">
-        {/* Stärke-Badge */}
-        {strengthLabel && (
-          <div className="flex items-center gap-2 text-[12px] text-white/90">
-            <Badge>{strengthLabel}</Badge>
-          </div>
-        )}
-        
-        {/* Adresse in eigener Zeile */}
-        <div className="flex items-center gap-1 text-[12px] text-white/80 pr-10">
-          <span aria-hidden>📍</span>
-          <span className="truncate">{address || '—'}</span>
+        {/* Rechte Seite: Logo */}
+        <div className="w-12 h-12 rounded-md overflow-hidden bg-white/15 backdrop-blur-[1px] grid place-items-center flex-shrink-0">
+          {logoUrl && !imgErr ? (
+            <Image
+              src={logoUrl}
+              alt={clubName ? `Logo ${clubName}` : 'Vereinslogo'}
+              width={48}
+              height={48}
+              className="object-cover w-full h-full"
+              onError={() => setImgErr(true)}
+              priority={false}
+            />
+          ) : (
+            <span className="text-[10px] text-white/70">Logo</span>
+          )}
         </div>
       </div>
     </div>
