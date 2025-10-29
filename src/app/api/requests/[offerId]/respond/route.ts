@@ -4,9 +4,9 @@ import { prisma } from '@/lib/prisma'
 import { getUserIdFromCookie } from '@/lib/auth'
 import { sendEmail } from '@/lib/replitmail'
 
-// PATCH /api/requests/[offerId]/respond
-// body: { requesterId: string, action: 'accept' | 'reject' }
-export async function PATCH(
+// POST /api/requests/[offerId]/respond
+// body: { requesterId: string, action: 'accept' | 'reject', message?: string }
+export async function POST(
   req: Request,
   context: { params: Promise<{ offerId: string }> }
 ) {
