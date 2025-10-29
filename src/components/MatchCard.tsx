@@ -92,7 +92,7 @@ export default function MatchCard({
       </div>
 
       {/* Erste Zeile: Datum • Uhrzeit (+ flexibel) */}
-      <div className="mt-2 text-[12px] text-white/90 flex flex-wrap items-center gap-2">
+      <div className="mt-1 text-[12px] text-white/90 flex flex-wrap items-center gap-2">
         <span aria-hidden>📅</span>
         <span>{dateFmt}</span>
 
