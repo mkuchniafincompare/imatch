@@ -120,6 +120,11 @@ export async function GET() {
       const opponentTeam = acceptedRequest?.requesterTeam || acceptedRequest?.requesterUser?.teams?.[0]
       const opponentClub = opponentTeam?.club
       const isOwner = o.team?.contactUserId === userId
+      
+      // Determine opponent trainer ID
+      const opponentTrainerId = isOwner 
+        ? acceptedRequest?.requesterUserId // If I'm the owner, opponent is the requester
+        : o.team?.contactUserId // If I'm the requester, opponent is the offer owner
 
       return {
         id: o.id,
@@ -133,6 +138,7 @@ export async function GET() {
         opponentAgeLabel: opponentTeam?.ageGroup ?? null,
         opponentYear: opponentTeam?.year ?? null,
         opponentLogoUrl: opponentClub?.logoUrl ?? null,
+        opponentTrainerId: opponentTrainerId ?? null,
         // Match details
         date: o.offerDate ? new Date(o.offerDate).toISOString().slice(0,10) : null,
         kickoffTime: o.kickoffTime ?? null,

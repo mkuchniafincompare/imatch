@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import BackgroundImage from '@/components/BackgroundImage'
 
 type Conversation = {
@@ -38,6 +38,9 @@ type Trainer = {
 
 export default function ChatPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const newConversationUserId = searchParams.get('newConversation')
+  
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [loading, setLoading] = useState(true)
   const [showNewMessage, setShowNewMessage] = useState(false)
@@ -57,6 +60,26 @@ export default function ChatPage() {
   useEffect(() => {
     fetchConversations()
   }, [])
+
+  // Auto-open new message modal if newConversation parameter is present
+  useEffect(() => {
+    if (newConversationUserId) {
+      setShowNewMessage(true)
+      // Fetch trainer info and auto-select
+      fetch(`/api/messaging/trainer/${newConversationUserId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.trainer) {
+            setSelectedTrainer(data.trainer)
+            setTrainerQuery(data.trainer.displayText)
+          }
+        })
+        .catch(err => console.error('Failed to fetch trainer:', err))
+      
+      // Remove the query parameter from URL
+      router.replace('/chat', { scroll: false })
+    }
+  }, [newConversationUserId, router])
 
   async function fetchConversations() {
     try {

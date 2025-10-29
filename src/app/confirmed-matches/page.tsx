@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import BackgroundImage from '@/components/BackgroundImage'
 import ConfirmedMatchCard from '@/components/ConfirmedMatchCard'
 import CancelMatchModal from '@/components/CancelMatchModal'
@@ -24,10 +25,12 @@ interface MatchItem {
   opponentAgeLabel?: string | null
   opponentYear?: number | null
   opponentLogoUrl?: string | null
+  opponentTrainerId?: string | null
   isOwner?: boolean
 }
 
 export default function ConfirmedMatchesPage() {
+  const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [confirmedOffers, setConfirmedOffers] = useState<MatchItem[]>([])
@@ -78,6 +81,29 @@ export default function ConfirmedMatchesPage() {
       }
     } catch (e: any) {
       console.error('Cancel match failed:', e)
+    }
+  }
+
+  async function handleContactTrainer(opponentTrainerId: string) {
+    if (!opponentTrainerId) return
+
+    try {
+      // Find or create conversation
+      const res = await fetch(`/api/messaging/find-conversation?userId=${encodeURIComponent(opponentTrainerId)}`)
+      const data = await res.json()
+
+      if (res.ok) {
+        if (data.exists) {
+          // Navigate to existing conversation
+          router.push(`/chat/${data.conversationId}`)
+        } else {
+          // Navigate to chat page to start new conversation
+          router.push(`/chat?newConversation=${opponentTrainerId}`)
+        }
+      }
+    } catch (e: any) {
+      console.error('Contact trainer failed:', e)
+      alert('Fehler beim Öffnen der Konversation')
     }
   }
 
@@ -134,6 +160,7 @@ export default function ConfirmedMatchesPage() {
                   opponentAgeLabel={offer.opponentAgeLabel || null}
                   opponentYear={offer.opponentYear}
                   opponentLogoUrl={offer.opponentLogoUrl}
+                  opponentTrainerId={offer.opponentTrainerId}
                   date={offer.date}
                   kickoffTime={offer.kickoffTime}
                   kickoffFlexible={offer.kickoffFlexible}
@@ -145,6 +172,7 @@ export default function ConfirmedMatchesPage() {
                   pendingRequestCount={offer.pendingRequestCount}
                   isOwner={offer.isOwner}
                   onCancel={() => handleOpenCancelModal(offer.id)}
+                  onContact={() => offer.opponentTrainerId && handleContactTrainer(offer.opponentTrainerId)}
                 />
               </div>
             ))}

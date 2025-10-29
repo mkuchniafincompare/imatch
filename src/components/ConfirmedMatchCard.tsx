@@ -14,6 +14,7 @@ type Props = {
   opponentAgeLabel: string | null
   opponentYear?: number | null
   opponentLogoUrl?: string | null
+  opponentTrainerId?: string | null
   // Match details
   date?: string | null
   kickoffTime?: string | null
@@ -33,7 +34,7 @@ type Props = {
 
 export default function ConfirmedMatchCard({
   clubName, ageLabel, year, logoUrl,
-  opponentClubName, opponentAgeLabel, opponentYear, opponentLogoUrl,
+  opponentClubName, opponentAgeLabel, opponentYear, opponentLogoUrl, opponentTrainerId,
   date, kickoffTime, kickoffFlexible,
   homeAway, notes, playTime, strengthLabel, address,
   pendingRequestCount, isOwner,
@@ -198,7 +199,7 @@ export default function ConfirmedMatchCard({
               </button>
 
               {/* Dropdown Menu */}
-              {menuOpen && (
+              {menuOpen && opponentTrainerId && (
                 <div 
                   className="absolute right-0 bottom-full mb-2 w-56 bg-white/95 backdrop-blur-xl rounded-xl shadow-2xl border border-white/40 py-2 z-50"
                   onClick={(e) => e.stopPropagation()}
