@@ -412,13 +412,13 @@ export default function MyOffersPage() {
           // Liste der Anfragen
           <>
             {loadingRequests ? (
-              <div className="text-sm text-gray-700">Lade Anfragen...</div>
+              <div className="text-sm text-gray-800">Lade Anfragen...</div>
             ) : offerRequests.length === 0 ? (
-              <div className="text-sm text-gray-700">Keine Anfragen vorhanden.</div>
+              <div className="text-sm text-gray-800">Keine Anfragen vorhanden.</div>
             ) : (
               <div className="space-y-4">
                 {offerRequests.map((req) => (
-                  <div key={req.requesterId} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div key={req.requesterId} className="p-4 bg-white/50 backdrop-blur-sm rounded-xl border border-white/60 shadow-sm">
                     <div className="flex items-start justify-between mb-3">
                       <div>
                         <div className="font-semibold text-gray-900">{req.requesterName}</div>
@@ -439,7 +439,7 @@ export default function MyOffersPage() {
                     </div>
                     
                     {req.message && (
-                      <div className="text-sm text-gray-700 mb-3 p-2 bg-white rounded border border-gray-100">
+                      <div className="text-sm text-gray-700 mb-3 p-3 bg-white/60 backdrop-blur-sm rounded-lg border border-white/60">
                         {req.message}
                       </div>
                     )}
@@ -469,9 +469,9 @@ export default function MyOffersPage() {
           // Bestätigungs-Ansicht
           respondAction && (
             <div className="space-y-4">
-              <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <div className="p-4 bg-white/50 backdrop-blur-sm rounded-xl border border-white/60 shadow-sm">
                 <div className="font-semibold text-gray-900 mb-1">{respondAction.requesterName}</div>
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-gray-700">
                   Du bist dabei, diese Anfrage zu {respondAction.action === 'accept' ? 'akzeptieren' : 'ablehnen'}.
                 </div>
               </div>
