@@ -51,7 +51,7 @@ export default function MatchCard({
       
       {/* Labels-Zeile: Reserviert (links) und Anfragen (rechts) */}
       {hasLabels && (
-        <div className="mb-2 flex items-center justify-between gap-2">
+        <div className="mb-2 flex items-center justify-between gap-2 pr-16">
           {isReserved && (
             <span className="inline-block bg-amber-400 text-amber-900 text-xs font-bold px-2 py-1 rounded shadow-md">
               Reserviert
@@ -65,29 +65,29 @@ export default function MatchCard({
         </div>
       )}
 
-      {/* Kopf: Clubname + Badges + Logo */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2 flex-1">
+      {/* Logo rechts - über mehrere Zeilen */}
+      <div className="absolute right-3 top-3 w-12 h-12 rounded-md overflow-hidden bg-white/15 backdrop-blur-[1px] grid place-items-center">
+        {logoUrl && !imgErr ? (
+          <Image
+            src={logoUrl}
+            alt={clubName ? `Logo ${clubName}` : 'Vereinslogo'}
+            width={48}
+            height={48}
+            className="object-cover w-full h-full"
+            onError={() => setImgErr(true)}
+            priority={false}
+          />
+        ) : (
+          <span className="text-[10px] text-white/70">Logo</span>
+        )}
+      </div>
+
+      {/* Kopf: Clubname + Badges */}
+      <div className="pr-16">
+        <div className="flex items-center gap-2">
           <div className="font-medium text-sm text-white">{clubName}</div>
           <Badge>{ageLabel}</Badge>
           {year ? <Badge>{year}</Badge> : null}
-        </div>
-        
-        {/* Logo auf Höhe des Clubnamens */}
-        <div className="w-12 h-12 rounded-md overflow-hidden bg-white/15 backdrop-blur-[1px] grid place-items-center flex-shrink-0">
-          {logoUrl && !imgErr ? (
-            <Image
-              src={logoUrl}
-              alt={clubName ? `Logo ${clubName}` : 'Vereinslogo'}
-              width={48}
-              height={48}
-              className="object-cover w-full h-full"
-              onError={() => setImgErr(true)}
-              priority={false}
-            />
-          ) : (
-            <span className="text-[10px] text-white/70">Logo</span>
-          )}
         </div>
       </div>
 
