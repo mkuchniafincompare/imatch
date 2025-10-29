@@ -1,129 +1,135 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react'
-import BackgroundImage from '@/components/BackgroundImage'
-import MatchCard from '@/components/MatchCard'
-import ConfirmModal from '@/components/ConfirmModal'
+import { useEffect, useState } from "react";
+import BackgroundImage from "@/components/BackgroundImage";
+import MatchCard from "@/components/MatchCard";
+import ConfirmModal from "@/components/ConfirmModal";
 
 interface MatchItem {
-  id: string
-  clubName: string
-  ageLabel: string | null
-  year: number | null
-  date: string | null
-  kickoffTime: string | null
-  kickoffFlexible: boolean
-  homeAway: 'HOME' | 'AWAY' | 'FLEX'
-  notes: string | null
-  playTime: string | null
-  strengthLabel: string | null
-  address: string | null
-  logoUrl: string | null
+  id: string;
+  clubName: string;
+  ageLabel: string | null;
+  year: number | null;
+  date: string | null;
+  kickoffTime: string | null;
+  kickoffFlexible: boolean;
+  homeAway: "HOME" | "AWAY" | "FLEX";
+  notes: string | null;
+  playTime: string | null;
+  strengthLabel: string | null;
+  address: string | null;
+  logoUrl: string | null;
 }
 
 export default function MyRequestsPage() {
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [requestedOffers, setRequestedOffers] = useState<MatchItem[]>([])
-  const [requestedIds, setRequestedIds] = useState<Set<string>>(new Set())
-  const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
-  const [withdrawModalOpen, setWithdrawModalOpen] = useState(false)
-  const [offerIdToWithdraw, setOfferIdToWithdraw] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [requestedOffers, setRequestedOffers] = useState<MatchItem[]>([]);
+  const [requestedIds, setRequestedIds] = useState<Set<string>>(new Set());
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  const [withdrawModalOpen, setWithdrawModalOpen] = useState(false);
+  const [offerIdToWithdraw, setOfferIdToWithdraw] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
-    fetchData()
-  }, [])
+    fetchData();
+  }, []);
 
   async function fetchData() {
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
     try {
-      await Promise.all([fetchRequestedOffers(), fetchSavedIds()])
+      await Promise.all([fetchRequestedOffers(), fetchSavedIds()]);
     } catch (e: any) {
-      setError(e?.message ?? 'Fehler beim Laden')
+      setError(e?.message ?? "Fehler beim Laden");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   async function fetchRequestedOffers() {
-    const req = await fetch('/api/requests')
-    if (!req.ok) throw new Error('Angefragte Angebote konnten nicht geladen werden')
-    const reqData = await req.json()
-    const ids = reqData.requestedIds || []
-    setRequestedIds(new Set(ids))
+    const req = await fetch("/api/requests");
+    if (!req.ok)
+      throw new Error("Angefragte Angebote konnten nicht geladen werden");
+    const reqData = await req.json();
+    const ids = reqData.requestedIds || [];
+    setRequestedIds(new Set(ids));
 
     if (ids.length === 0) {
-      setRequestedOffers([])
-      return
+      setRequestedOffers([]);
+      return;
     }
 
-    const offers = await fetch(`/api/offer?ids=${ids.join(',')}`)
-    if (!offers.ok) throw new Error('Angebotsdaten konnten nicht geladen werden')
-    const offersData = await offers.json()
-    setRequestedOffers(offersData.items || [])
+    const offers = await fetch(`/api/offer?ids=${ids.join(",")}`);
+    if (!offers.ok)
+      throw new Error("Angebotsdaten konnten nicht geladen werden");
+    const offersData = await offers.json();
+    setRequestedOffers(offersData.items || []);
   }
 
   async function fetchSavedIds() {
-    const saved = await fetch('/api/saved-offers')
-    if (!saved.ok) return
-    const savedData = await saved.json()
-    setSavedIds(new Set(savedData.savedIds || []))
+    const saved = await fetch("/api/saved-offers");
+    if (!saved.ok) return;
+    const savedData = await saved.json();
+    setSavedIds(new Set(savedData.savedIds || []));
   }
 
   async function handleToggleSaved(offerId: string) {
-    const isSaved = savedIds.has(offerId)
+    const isSaved = savedIds.has(offerId);
     try {
-      const res = await fetch('/api/saved-offers', {
-        method: isSaved ? 'DELETE' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/saved-offers", {
+        method: isSaved ? "DELETE" : "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ offerId }),
-      })
+      });
 
       if (res.ok) {
-        setSavedIds(prev => {
-          const newSet = new Set(prev)
+        setSavedIds((prev) => {
+          const newSet = new Set(prev);
           if (isSaved) {
-            newSet.delete(offerId)
+            newSet.delete(offerId);
           } else {
-            newSet.add(offerId)
+            newSet.add(offerId);
           }
-          return newSet
-        })
+          return newSet;
+        });
       }
     } catch (e: any) {
-      console.error('Toggle saved failed:', e)
+      console.error("Toggle saved failed:", e);
     }
   }
 
   async function handleWithdrawRequest() {
-    if (!offerIdToWithdraw) return
+    if (!offerIdToWithdraw) return;
 
     try {
-      const res = await fetch('/api/requests/withdraw', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/requests/withdraw", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ offerId: offerIdToWithdraw }),
-      })
-      
+      });
+
       if (res.ok) {
-        setRequestedIds(prev => {
-          const newSet = new Set(prev)
-          newSet.delete(offerIdToWithdraw)
-          return newSet
-        })
-        setRequestedOffers(prev => prev.filter(o => o.id !== offerIdToWithdraw))
-        setOfferIdToWithdraw(null)
+        setRequestedIds((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(offerIdToWithdraw);
+          return newSet;
+        });
+        setRequestedOffers((prev) =>
+          prev.filter((o) => o.id !== offerIdToWithdraw),
+        );
+        setOfferIdToWithdraw(null);
       }
     } catch (e: any) {
-      console.error('Withdraw request failed:', e)
+      console.error("Withdraw request failed:", e);
     }
   }
 
   return (
-    <main className="relative min-h-screen">
+    <main className="relative min-h-screen pt-16">
       <BackgroundImage />
-      
+
       <div className="relative z-10 max-w-4xl mx-auto px-4 py-6">
         {/* Header */}
         <h1 className="text-2xl font-bold text-white flex items-center gap-2 mb-6">
@@ -153,21 +159,22 @@ export default function MyRequestsPage() {
               Noch keine Anfragen verschickt
             </div>
             <div className="text-white/60 text-sm">
-              Sende deine erste Anfrage auf der "Suchen"-Seite
+              Sende deine erste Anfrage auf der "Suchen"-Seite oder über deine
+              "Merkliste"
             </div>
           </div>
         ) : (
           <div className="space-y-4">
-            {requestedOffers.map(offer => (
+            {requestedOffers.map((offer) => (
               <div key={offer.id} className="glass-card overflow-hidden">
-                <MatchCard 
-                  {...offer} 
-                  ageLabel={offer.ageLabel || '—'}
+                <MatchCard
+                  {...offer}
+                  ageLabel={offer.ageLabel || "—"}
                   isSaved={savedIds.has(offer.id)}
                   onSaveClick={() => handleToggleSaved(offer.id)}
                   onWithdrawClick={() => {
-                    setOfferIdToWithdraw(offer.id)
-                    setWithdrawModalOpen(true)
+                    setOfferIdToWithdraw(offer.id);
+                    setWithdrawModalOpen(true);
                   }}
                 />
               </div>
@@ -187,5 +194,5 @@ export default function MyRequestsPage() {
         cancelText="Nein"
       />
     </main>
-  )
+  );
 }
