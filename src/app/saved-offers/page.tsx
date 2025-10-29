@@ -146,6 +146,8 @@ export default function SavedOffersPage() {
         setRequestModalOpen(false)
         setSelectedOfferId(null)
         setRequestMessage('')
+        // Weiterleitung zu "Meine Anfragen"
+        window.location.href = '/my-requests'
       }
     } catch (e: any) {
       console.error('Request failed:', e)
@@ -259,7 +261,7 @@ export default function SavedOffersPage() {
               value={requestMessage}
               onChange={(e) => setRequestMessage(e.target.value)}
               placeholder="Nachricht (optional)"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D04D2E] focus:border-transparent resize-none"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D04D2E] focus:border-transparent resize-none text-gray-900"
               rows={4}
             />
             <div className="flex gap-3 mt-6">
