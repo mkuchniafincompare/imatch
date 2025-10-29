@@ -43,51 +43,51 @@ export default function MatchCard({
 
   const [imgErr, setImgErr] = React.useState(false)
 
+  const hasLabels = isReserved || (requestCount && requestCount > 0)
+
   return (
     // Kein fester Hintergrund hier, damit der "Glass"-Wrapper der Seite wirkt
     <div className="relative overflow-hidden rounded-2xl px-3 py-3">
       
-      {/* Rechts: Logo */}
-      <div className="absolute right-3 top-3 w-12 h-12 rounded-md overflow-hidden bg-white/15 backdrop-blur-[1px] grid place-items-center">
-        {logoUrl && !imgErr ? (
-          <Image
-            src={logoUrl}
-            alt={clubName ? `Logo ${clubName}` : 'Vereinslogo'}
-            width={48}
-            height={48}
-            className="object-cover w-full h-full"
-            onError={() => setImgErr(true)}
-            priority={false}
-          />
-        ) : (
-          <span className="text-[10px] text-white/70">Logo</span>
-        )}
-      </div>
-
-      {/* Reserviert-Banner in eigener Zeile */}
-      {isReserved && (
-        <div className="mb-2 pr-16">
-          <span className="inline-block bg-amber-400 text-amber-900 text-xs font-bold px-2 py-1 rounded shadow-md">
-            Reserviert
-          </span>
+      {/* Labels-Zeile: Reserviert (links) und Anfragen (rechts) */}
+      {hasLabels && (
+        <div className="mb-2 flex items-center justify-between gap-2">
+          {isReserved && (
+            <span className="inline-block bg-amber-400 text-amber-900 text-xs font-bold px-2 py-1 rounded shadow-md">
+              Reserviert
+            </span>
+          )}
+          {requestCount && requestCount > 0 && (
+            <span className="inline-block bg-red-500 text-white text-xs font-bold px-2 py-1 rounded shadow-md ml-auto">
+              {requestCount === 1 ? '1 Anfrage' : `${requestCount} Anfragen`}
+            </span>
+          )}
         </div>
       )}
 
-      {/* Anfragen-Banner in eigener Zeile */}
-      {requestCount && requestCount > 0 && (
-        <div className="mb-2 pr-16">
-          <span className="inline-block bg-red-500 text-white text-xs font-bold px-2 py-1 rounded shadow-md">
-            {requestCount === 1 ? '1 Anfrage' : `${requestCount} Anfragen`}
-          </span>
-        </div>
-      )}
-
-      {/* Kopf */}
-      <div className="pr-16">
-        <div className="flex items-center gap-2">
+      {/* Kopf: Clubname + Badges + Logo */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-2 flex-1">
           <div className="font-medium text-sm text-white">{clubName}</div>
           <Badge>{ageLabel}</Badge>
           {year ? <Badge>{year}</Badge> : null}
+        </div>
+        
+        {/* Logo auf Höhe des Clubnamens */}
+        <div className="w-12 h-12 rounded-md overflow-hidden bg-white/15 backdrop-blur-[1px] grid place-items-center flex-shrink-0">
+          {logoUrl && !imgErr ? (
+            <Image
+              src={logoUrl}
+              alt={clubName ? `Logo ${clubName}` : 'Vereinslogo'}
+              width={48}
+              height={48}
+              className="object-cover w-full h-full"
+              onError={() => setImgErr(true)}
+              priority={false}
+            />
+          ) : (
+            <span className="text-[10px] text-white/70">Logo</span>
+          )}
         </div>
       </div>
 
