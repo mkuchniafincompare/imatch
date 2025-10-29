@@ -53,21 +53,43 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Not authorized to edit this offer' }, { status: 403 })
     }
 
-    // Update the offer
+    // Update the offer - only update fields that are explicitly provided
+    const updateData: any = {}
+    
+    if (offerDate !== undefined) {
+      updateData.offerDate = offerDate ? new Date(offerDate) : null
+    }
+    if (kickoffTime !== undefined) {
+      updateData.kickoffTime = kickoffTime || null
+    }
+    if (kickoffFlexible !== undefined) {
+      updateData.kickoffFlexible = kickoffFlexible
+    }
+    if (strength !== undefined) {
+      updateData.strength = strength || null
+    }
+    if (playForm !== undefined) {
+      updateData.playForm = playForm || null
+    }
+    if (durationText !== undefined) {
+      updateData.durationText = durationText || null
+    }
+    if (homeAway !== undefined) {
+      updateData.homeAway = homeAway
+    }
+    if (fieldType !== undefined) {
+      updateData.fieldType = fieldType
+    }
+    if (notes !== undefined) {
+      updateData.notes = notes || null
+    }
+    if (isReserved !== undefined) {
+      updateData.isReserved = isReserved
+    }
+
     const updated = await prisma.gameOffer.update({
       where: { id: offerId },
-      data: {
-        offerDate: offerDate ? new Date(offerDate) : undefined,
-        kickoffTime: kickoffTime || null,
-        kickoffFlexible: kickoffFlexible !== undefined ? kickoffFlexible : undefined,
-        strength: strength || null,
-        playForm: playForm || null,
-        durationText: durationText || null,
-        homeAway: homeAway || undefined,
-        fieldType: fieldType || undefined,
-        notes: notes || null,
-        isReserved: isReserved !== undefined ? isReserved : undefined,
-      },
+      data: updateData,
     })
 
     return NextResponse.json({ success: true, offer: updated })
