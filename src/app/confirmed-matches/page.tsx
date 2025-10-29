@@ -83,7 +83,7 @@ export default function ConfirmedMatchesPage() {
 
   return (
     <main className="relative min-h-screen">
-      <BackgroundImage />
+      <BackgroundImage src="/back2.jpg" />
       
       <div className="relative z-10 max-w-4xl mx-auto px-4 py-6">
         {/* Header */}
