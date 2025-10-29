@@ -138,6 +138,10 @@ model User {
   notificationsReceived Notification[]
   messagesSent          InboxMessage[]   @relation("SentMessages")
   messagesReceived      InboxMessage[]   @relation("ReceivedMessages")
+  
+  conversationsAsUser1 Conversation[] @relation("ConversationUser1")
+  conversationsAsUser2 Conversation[] @relation("ConversationUser2")
+  chatMessagesSent     ChatMessage[]  @relation("ChatMessageSender")
 }
 
 model Club {
@@ -375,4 +379,36 @@ model InboxMessage {
 
   @@index([toUserId, read, createdAt])
   @@index([fromUserId, createdAt])
+}
+
+model Conversation {
+  id        String   @id @default(cuid())
+  user1Id   String
+  user2Id   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user1 User              @relation("ConversationUser1", fields: [user1Id], references: [id], onDelete: Cascade)
+  user2 User              @relation("ConversationUser2", fields: [user2Id], references: [id], onDelete: Cascade)
+  
+  messages ChatMessage[]
+
+  @@unique([user1Id, user2Id])
+  @@index([user1Id])
+  @@index([user2Id])
+}
+
+model ChatMessage {
+  id             String   @id @default(cuid())
+  conversationId String
+  senderId       String
+  text           String
+  read           Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation("ChatMessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@index([senderId])
 }

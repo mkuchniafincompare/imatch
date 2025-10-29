@@ -162,29 +162,20 @@ export default function HeaderBar() {
         {/* Rechts: Chat, Glocke, Profil */}
         <div className="flex items-center gap-2">
           {/* Chat */}
-          <div className="relative" ref={chatRef}>
-            <button
-              type="button"
-              onClick={() => { setOpenChat(true); setOpenBell(false); setOpenProfile(false); setOpenBurger(false) }}
-              aria-haspopup="dialog"
-              aria-expanded={openChat}
-              className="inline-flex items-center justify-center w-8 h-8 rounded-full border border-white/40 hover:bg-white/20 active:scale-[0.98] transition"
-              title="Nachrichten"
-            >
-              <Image
-                src="/sprechblasen.png"
-                alt="Nachrichten"
-                width={18}
-                height={18}
-                className="object-contain brightness-0 invert"
-              />
-              {unreadMessages > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-white text-[#D04D2E] text-[10px] font-bold leading-[18px] text-center">
-                  {unreadMessages > 9 ? '9+' : unreadMessages}
-                </span>
-              )}
-            </button>
-          </div>
+          <Link href="/chat" className="relative inline-flex items-center justify-center w-8 h-8 rounded-full border border-white/40 hover:bg-white/20 active:scale-[0.98] transition" title="Chats">
+            <Image
+              src="/sprechblasen.png"
+              alt="Chats"
+              width={18}
+              height={18}
+              className="object-contain brightness-0 invert"
+            />
+            {unreadMessages > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-white text-[#D04D2E] text-[10px] font-bold leading-[18px] text-center">
+                {unreadMessages > 9 ? '9+' : unreadMessages}
+              </span>
+            )}
+          </Link>
 
           {/* Glocke */}
           <div className="relative" ref={bellRef}>
