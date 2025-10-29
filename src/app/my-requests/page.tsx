@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from 'next/navigation';
 import BackgroundImage from "@/components/BackgroundImage";
 import MatchCard from "@/components/MatchCard";
 
@@ -43,9 +44,11 @@ interface MatchItem {
   strengthLabel: string | null;
   address: string | null;
   logoUrl: string | null;
+  ownerId: string | null;
 }
 
 export default function MyRequestsPage() {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [requestedOffers, setRequestedOffers] = useState<MatchItem[]>([]);
@@ -127,6 +130,26 @@ export default function MyRequestsPage() {
       }
     } catch (e: any) {
       console.error("Withdraw request failed:", e);
+    }
+  }
+
+  async function handleContactTrainer(ownerId: string) {
+    if (!ownerId) return;
+
+    try {
+      const res = await fetch(`/api/messaging/find-conversation?userId=${encodeURIComponent(ownerId)}`);
+      const data = await res.json();
+
+      if (res.ok) {
+        if (data.exists) {
+          router.push(`/chat/${data.conversationId}`);
+        } else {
+          router.push(`/chat?newConversation=${ownerId}`);
+        }
+      }
+    } catch (e: any) {
+      console.error('Contact trainer failed:', e);
+      alert('Fehler beim Öffnen der Konversation');
     }
   }
 
@@ -212,7 +235,9 @@ export default function MyRequestsPage() {
                   key={`menu-${offer.id}`}
                   offerId={offer.id}
                   isFirstItem={index === 0}
+                  ownerId={offer.ownerId}
                   onWithdraw={() => openWithdrawModal(offer.id)}
+                  onContact={() => { if (offer.ownerId) handleContactTrainer(offer.ownerId) }}
                   onClose={() => setOpenMenuId(null)}
                 />
               );
@@ -264,12 +289,16 @@ export default function MyRequestsPage() {
 function BurgerMenu({
   offerId,
   isFirstItem,
+  ownerId,
   onWithdraw,
+  onContact,
   onClose,
 }: {
   offerId: string;
   isFirstItem: boolean;
+  ownerId: string | null;
   onWithdraw: () => void;
+  onContact: () => void;
   onClose: () => void;
 }) {
   const menuRef = useRef<HTMLDivElement>(null);
@@ -300,6 +329,19 @@ function BurgerMenu({
       className="fixed z-30 bg-white rounded-xl shadow-2xl border border-gray-200 py-2 min-w-[200px]"
       style={{ position: 'fixed' }}
     >
+      {ownerId && (
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onContact();
+          }}
+          className="w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100 flex items-center gap-2 border-b border-gray-100"
+        >
+          <span>📧</span>
+          <span>Trainer kontaktieren</span>
+        </button>
+      )}
       <button
         onClick={(e) => {
           e.preventDefault();

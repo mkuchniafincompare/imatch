@@ -110,6 +110,7 @@ export async function GET(req: Request) {
         strengthLabel,
         address,
         logoUrl: club?.logoUrl ?? null,
+        ownerId: (o as any).team?.contactUserId ?? null,
       }
     })
 
@@ -316,6 +317,7 @@ export async function GET(req: Request) {
       strengthLabel,
       address,
       logoUrl: club?.logoUrl ?? null,
+      ownerId: (o as any).team?.contactUserId ?? null,
     }
   })
 

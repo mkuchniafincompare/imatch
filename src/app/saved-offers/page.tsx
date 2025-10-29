@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import BackgroundImage from '@/components/BackgroundImage'
 import MatchCard from '@/components/MatchCard'
 import ConfirmModal from '@/components/ConfirmModal'
@@ -44,9 +45,11 @@ interface MatchItem {
   strengthLabel: string | null
   address: string | null
   logoUrl: string | null
+  ownerId: string | null
 }
 
 export default function SavedOffersPage() {
+  const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [savedOffers, setSavedOffers] = useState<MatchItem[]>([])
@@ -154,6 +157,26 @@ export default function SavedOffersPage() {
     }
   }
 
+  async function handleContactTrainer(ownerId: string) {
+    if (!ownerId) return
+
+    try {
+      const res = await fetch(`/api/messaging/find-conversation?userId=${encodeURIComponent(ownerId)}`)
+      const data = await res.json()
+
+      if (res.ok) {
+        if (data.exists) {
+          router.push(`/chat/${data.conversationId}`)
+        } else {
+          router.push(`/chat?newConversation=${ownerId}`)
+        }
+      }
+    } catch (e: any) {
+      console.error('Contact trainer failed:', e)
+      alert('Fehler beim Öffnen der Konversation')
+    }
+  }
+
   // Auto-cleanup wird jetzt auf dem Server durchgeführt (in der API)
 
   // Filter: Wenn ein Spiel angefragt wurde, nicht mehr bei "Gemerkt" anzeigen
@@ -239,8 +262,10 @@ export default function SavedOffersPage() {
                   key={`menu-${offer.id}`}
                   offerId={offer.id}
                   isFirstItem={index === 0}
+                  ownerId={offer.ownerId}
                   onRemove={() => handleRemoveFromSaved(offer.id)}
                   onRequest={() => openRequestModal(offer.id)}
+                  onContact={() => { if (offer.ownerId) handleContactTrainer(offer.ownerId) }}
                   onClose={() => setOpenMenuId(null)}
                 />
               )
@@ -292,14 +317,18 @@ export default function SavedOffersPage() {
 function BurgerMenu({
   offerId,
   isFirstItem,
+  ownerId,
   onRemove,
   onRequest,
+  onContact,
   onClose,
 }: {
   offerId: string
   isFirstItem: boolean
+  ownerId: string | null
   onRemove: () => void
   onRequest: () => void
+  onContact: () => void
   onClose: () => void
 }) {
   const menuRef = useRef<HTMLDivElement>(null)
@@ -337,6 +366,15 @@ function BurgerMenu({
         <span>📤</span>
         <span>Anfrage senden</span>
       </button>
+      {ownerId && (
+        <button
+          onClick={onContact}
+          className="w-full text-left px-4 py-3 hover:bg-gray-50 text-sm text-gray-900 flex items-center gap-2 border-b border-gray-100"
+        >
+          <span>📧</span>
+          <span>Trainer kontaktieren</span>
+        </button>
+      )}
       <button
         onClick={onRemove}
         className="w-full text-left px-4 py-3 hover:bg-red-50 text-sm text-red-600 flex items-center gap-2"

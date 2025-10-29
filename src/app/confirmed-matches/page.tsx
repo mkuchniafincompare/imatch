@@ -172,7 +172,7 @@ export default function ConfirmedMatchesPage() {
                   pendingRequestCount={offer.pendingRequestCount}
                   isOwner={offer.isOwner}
                   onCancel={() => handleOpenCancelModal(offer.id)}
-                  onContact={() => offer.opponentTrainerId && handleContactTrainer(offer.opponentTrainerId)}
+                  onContact={() => { if (offer.opponentTrainerId) handleContactTrainer(offer.opponentTrainerId) }}
                 />
               </div>
             ))}

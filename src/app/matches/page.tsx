@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import MatchCard from '@/components/MatchCard'
 import BackgroundImage from '@/components/BackgroundImage'
@@ -21,6 +22,7 @@ type OfferItem = {
   strengthLabel?: string | null
   address?: string | null
   logoUrl?: string | null
+  ownerId?: string | null
 }
 
 type HomeAway = 'HOME' | 'AWAY' | 'FLEX' | null
@@ -84,16 +86,20 @@ function isPristineFilters(f: FiltersState, ha: HomeAway) {
 
 function MatchBurgerMenu({
   offerId,
+  ownerId,
   isSaved,
   isRequested,
   onToggleSave,
   onToggleRequest,
+  onContact,
 }: {
   offerId: string
+  ownerId: string | null
   isSaved: boolean
   isRequested: boolean
   onToggleSave: () => void
   onToggleRequest: () => void
+  onContact: () => void
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -139,7 +145,7 @@ function MatchBurgerMenu({
               setMenuOpen(false)
               onToggleSave()
             }}
-            className="w-full px-4 py-3 text-left text-gray-700 hover:bg-gray-100 transition flex items-center gap-3"
+            className="w-full px-4 py-3 text-left text-gray-700 hover:bg-gray-100 transition flex items-center gap-3 border-b border-gray-100"
           >
             <span className="text-lg">{isSaved ? '★' : '☆'}</span>
             <span className="font-medium">{isSaved ? 'Nicht mehr merken' : 'Merken'}</span>
@@ -151,11 +157,25 @@ function MatchBurgerMenu({
               setMenuOpen(false)
               onToggleRequest()
             }}
-            className="w-full px-4 py-3 text-left text-gray-700 hover:bg-gray-100 transition flex items-center gap-3"
+            className="w-full px-4 py-3 text-left text-gray-700 hover:bg-gray-100 transition flex items-center gap-3 border-b border-gray-100"
           >
             <span className="text-lg">{isRequested ? '↩︎' : '📨'}</span>
             <span className="font-medium">{isRequested ? 'Anfrage zurückziehen' : 'Anfragen'}</span>
           </button>
+
+          {ownerId && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                setMenuOpen(false)
+                onContact()
+              }}
+              className="w-full px-4 py-3 text-left text-gray-700 hover:bg-gray-100 transition flex items-center gap-3"
+            >
+              <span className="text-lg">📧</span>
+              <span className="font-medium">Trainer kontaktieren</span>
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -163,6 +183,7 @@ function MatchBurgerMenu({
 }
 
 export default function MatchesPage() {
+  const router = useRouter()
   const [items, setItems] = useState<OfferItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -215,6 +236,26 @@ export default function MatchesPage() {
       if (willRequest) revert.delete(offerId)
       else revert.add(offerId)
       setRequested(revert)
+    }
+  }
+
+  async function handleContactTrainer(ownerId: string) {
+    if (!ownerId) return
+
+    try {
+      const res = await fetch(`/api/messaging/find-conversation?userId=${encodeURIComponent(ownerId)}`)
+      const data = await res.json()
+
+      if (res.ok) {
+        if (data.exists) {
+          router.push(`/chat/${data.conversationId}`)
+        } else {
+          router.push(`/chat?newConversation=${ownerId}`)
+        }
+      }
+    } catch (e: any) {
+      console.error('Contact trainer failed:', e)
+      alert('Fehler beim Öffnen der Konversation')
     }
   }
 
@@ -464,10 +505,12 @@ export default function MatchesPage() {
               {/* Burger-Menü */}
               <MatchBurgerMenu
                 offerId={it.id}
+                ownerId={it.ownerId ?? null}
                 isSaved={isSaved(it.id)}
                 isRequested={isRequested(it.id)}
                 onToggleSave={() => toggleSave(it.id)}
                 onToggleRequest={() => toggleRequest(it.id)}
+                onContact={() => { if (it.ownerId) handleContactTrainer(it.ownerId) }}
               />
             </div>
           ))}
