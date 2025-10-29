@@ -43,7 +43,9 @@ export default function MatchCard({
 
   const [imgErr, setImgErr] = React.useState(false)
 
-  const hasLabels = isReserved || (requestCount && requestCount > 0)
+  const normalizedCount = requestCount ?? 0
+  const showRequests = normalizedCount > 0
+  const hasLabels = Boolean(isReserved) || showRequests
 
   return (
     // Kein fester Hintergrund hier, damit der "Glass"-Wrapper der Seite wirkt
@@ -57,9 +59,9 @@ export default function MatchCard({
               Reserviert
             </span>
           )}
-          {requestCount && requestCount > 0 && (
+          {showRequests && (
             <span className="inline-block bg-red-500 text-white text-xs font-bold px-2 py-1 rounded shadow-md ml-auto">
-              {requestCount === 1 ? '1 Anfrage' : `${requestCount} Anfragen`}
+              {normalizedCount === 1 ? '1 Anfrage' : `${normalizedCount} Anfragen`}
             </span>
           )}
         </div>
