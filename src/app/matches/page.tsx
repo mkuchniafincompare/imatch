@@ -82,6 +82,86 @@ function isPristineFilters(f: FiltersState, ha: HomeAway) {
   return nothingSet
 }
 
+function MatchBurgerMenu({
+  offerId,
+  isSaved,
+  isRequested,
+  onToggleSave,
+  onToggleRequest,
+}: {
+  offerId: string
+  isSaved: boolean
+  isRequested: boolean
+  onToggleSave: () => void
+  onToggleRequest: () => void
+}) {
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false)
+      }
+    }
+    if (menuOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [menuOpen])
+
+  return (
+    <div className="absolute bottom-3 right-3 z-20" ref={menuRef}>
+      <button
+        onClick={(e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          setMenuOpen(!menuOpen)
+        }}
+        className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/40 flex items-center justify-center transition"
+        aria-label="Menü"
+      >
+        <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+          <circle cx="10" cy="5" r="1.5" />
+          <circle cx="10" cy="10" r="1.5" />
+          <circle cx="10" cy="15" r="1.5" />
+        </svg>
+      </button>
+
+      {menuOpen && (
+        <div 
+          className="absolute right-0 bottom-full mb-2 w-56 bg-white/95 backdrop-blur-xl rounded-xl shadow-2xl border border-white/40 py-2 z-50"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              setMenuOpen(false)
+              onToggleSave()
+            }}
+            className="w-full px-4 py-3 text-left text-gray-700 hover:bg-gray-100 transition flex items-center gap-3"
+          >
+            <span className="text-lg">{isSaved ? '★' : '☆'}</span>
+            <span className="font-medium">{isSaved ? 'Nicht mehr merken' : 'Merken'}</span>
+          </button>
+
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              setMenuOpen(false)
+              onToggleRequest()
+            }}
+            className="w-full px-4 py-3 text-left text-gray-700 hover:bg-gray-100 transition flex items-center gap-3"
+          >
+            <span className="text-lg">{isRequested ? '↩︎' : '📨'}</span>
+            <span className="font-medium">{isRequested ? 'Anfrage zurückziehen' : 'Anfragen'}</span>
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function MatchesPage() {
   const [items, setItems] = useState<OfferItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -314,94 +394,85 @@ export default function MatchesPage() {
   }
 
   return (
-    <main className="relative min-h-dvh text-white pt-12">
+    <main className="relative min-h-screen">
       {/* Dezent überlagerter Seitenhintergrund */}
       <BackgroundImage src="/back2.jpg" />
 
-      {/* Fixed Top-Bar (unter App-Header) */}
-      <div className="fixed top-12 left-0 right-0 z-20 px-3 pt-2 pb-2 bg-[#D04D2E]/90 backdrop-blur-md shadow-md">
-        <div className="mx-auto max-w-sm">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <h1 className="text-lg font-semibold leading-none">Matches</h1>
-            </div>
-            <div className="relative flex items-center justify-center">
-              <button
-                type="button"
-                onClick={() => setDrawerOpen(true)}
-                className="relative inline-flex items-center justify-center w-9 h-9 rounded-full bg-white/20 border border-white/60 hover:bg-white/30 transition"
-                aria-label="Filter"
-              >
-                <img
-                  src="/filter.png"
-                  alt="Filter"
-                  className="w-5 h-5 object-contain"
-                />
-                {activeCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-semibold rounded-full px-[5px] py-[1px] leading-none">
-                    {activeCount}
-                  </span>
-                )}
-              </button>
-            </div>
-          </div>
-          <div className="mt-1 text-[11px] text-white/85">
-            {loading ? 'Lade …' : `${items.length} Treffer`}
-          </div>
+      <div className="relative z-10 max-w-4xl mx-auto px-4 py-6">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+            <span>🔎</span>
+            <span>Matches</span>
+          </h1>
+          <button
+            type="button"
+            onClick={() => setDrawerOpen(true)}
+            className="relative inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/20 border border-white/60 hover:bg-white/30 transition"
+            aria-label="Filter"
+          >
+            <img
+              src="/filter.png"
+              alt="Filter"
+              className="w-5 h-5 object-contain"
+            />
+            {activeCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-semibold rounded-full px-[5px] py-[1px] leading-none">
+                {activeCount}
+              </span>
+            )}
+          </button>
         </div>
-      </div>
-      <div className="h-16" />
 
-      <div className="mx-auto max-w-sm px-3 pt-3 pb-2">
+        {/* Stats */}
+        <div className="mb-4 text-sm text-white/85">
+          {loading ? 'Lade …' : `${items.length} Treffer`}
+        </div>
+
+        {/* Content */}
         {loading && (
-          <div className="glass-card px-3 py-2 text-sm text-white/90">
-            Lade …
+          <div className="glass-card rounded-2xl p-8 text-center">
+            <div className="text-white/80">Lade...</div>
           </div>
         )}
         {error && (
-          <div className="glass-card border-red-400/60 bg-red-500/15 text-red-50 px-3 py-2 text-sm">
-            {error}
+          <div className="glass-card rounded-2xl p-8 text-center border-red-400/60 bg-red-500/15">
+            <div className="text-red-300">{error}</div>
           </div>
         )}
 
-        <div className="grid gap-3">
+        <div className="space-y-4">
           {items.map((it) => (
-            <div key={it.id} className="glass-card overflow-hidden">
-              <MatchCard {...it} />
-              <div className="px-3 pb-3 pt-2 border-t border-white/15 flex items-center justify-between">
-                <button
-                  type="button"
-                  onClick={() => toggleSave(it.id)}
-                  className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition ${
-                    isSaved(it.id)
-                      ? 'bg-white text-black'
-                      : 'bg-white/10 hover:bg-white/20 text-white'
-                  }`}
-                  aria-pressed={isSaved(it.id)}
-                >
-                  <span className="text-base">{isSaved(it.id) ? '★' : '☆'}</span>
-                  <span>{isSaved(it.id) ? 'Gemerkt' : 'Merken'}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => toggleRequest(it.id)}
-                  className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
-                    isRequested(it.id)
-                      ? 'bg-red-600/20 text-red-100 border border-red-400 hover:bg-red-600/30'
-                      : 'bg-[#D04D2E] hover:brightness-110 text-white'
-                  }`}
-                >
-                  <span>{isRequested(it.id) ? '↩︎' : '📨'}</span>
-                  <span>{isRequested(it.id) ? 'Anfrage zurückziehen' : 'Anfragen'}</span>
-                </button>
-              </div>
+            <div key={it.id} className="glass-card relative">
+              <MatchCard 
+                clubName={it.clubName}
+                ageLabel={it.ageLabel}
+                year={it.year}
+                date={it.date}
+                kickoffTime={it.kickoffTime}
+                kickoffFlexible={it.kickoffFlexible}
+                homeAway={it.homeAway}
+                notes={it.notes}
+                playTime={it.playTime}
+                strengthLabel={it.strengthLabel}
+                address={it.address}
+                logoUrl={it.logoUrl}
+              />
+              
+              {/* Burger-Menü */}
+              <MatchBurgerMenu
+                offerId={it.id}
+                isSaved={isSaved(it.id)}
+                isRequested={isRequested(it.id)}
+                onToggleSave={() => toggleSave(it.id)}
+                onToggleRequest={() => toggleRequest(it.id)}
+              />
             </div>
           ))}
 
           {!loading && !error && items.length === 0 && (
-            <div className="glass-card px-3 py-2 text-sm text-white/90">
-              Keine Angebote gefunden.
+            <div className="glass-card rounded-2xl p-8 text-center">
+              <div className="text-white/90">Keine Angebote gefunden.</div>
             </div>
           )}
         </div>
@@ -418,7 +489,6 @@ export default function MatchesPage() {
         }}
         onReset={resetAll}
       />
-      
     </main>
   )
 }
