@@ -115,7 +115,7 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
               <div className="text-base">➕</div>
               <div className="text-center leading-tight">Meine Angebote</div>
               {badges.myOffers > 0 && (
-                <div className="absolute top-1 right-1 bg-orange-500 text-white text-[8px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                <div className="absolute top-1 right-1 bg-red-500 text-white text-[8px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
                   {badges.myOffers > 9 ? '9+' : badges.myOffers}
                 </div>
               )}

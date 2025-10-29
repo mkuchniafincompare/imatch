@@ -66,6 +66,10 @@ export default function MyOffersPage() {
   const [offerToDelete, setOfferToDelete] = useState<string | null>(null)
   const [reserveModalOpen, setReserveModalOpen] = useState(false)
   const [reserveAction, setReserveAction] = useState<{ offerId: string; isCurrentlyReserved: boolean } | null>(null)
+  
+  const [respondModalOpen, setRespondModalOpen] = useState(false)
+  const [respondAction, setRespondAction] = useState<{ requesterId: string; action: 'accept' | 'reject'; requesterName: string } | null>(null)
+  const [respondMessage, setRespondMessage] = useState('')
 
   useEffect(() => {
     fetchOwnOffers()
@@ -104,17 +108,30 @@ export default function MyOffersPage() {
     }
   }
 
-  async function handleRespondToRequest(requesterId: string, action: 'accept' | 'reject') {
-    if (!selectedOfferId) return
+  function openRespondModal(requesterId: string, action: 'accept' | 'reject', requesterName: string) {
+    setRespondAction({ requesterId, action, requesterName })
+    setRespondMessage('')
+    setRespondModalOpen(true)
+  }
+
+  async function handleRespondToRequest() {
+    if (!selectedOfferId || !respondAction) return
 
     try {
       const res = await fetch(`/api/requests/${selectedOfferId}/respond`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ requesterId, action }),
+        body: JSON.stringify({ 
+          requesterId: respondAction.requesterId, 
+          action: respondAction.action,
+          message: respondMessage.trim() || null,
+        }),
       })
 
       if (res.ok) {
+        setRespondModalOpen(false)
+        setRespondAction(null)
+        setRespondMessage('')
         setRequestDrawerOpen(false)
         fetchOwnOffers()
       }
@@ -246,6 +263,15 @@ export default function MyOffersPage() {
                       />
                     </div>
                     
+                    {/* Label "x mal angefragt" */}
+                    {hasRequests && (
+                      <div className="absolute top-3 right-3 z-20">
+                        <div className="px-3 py-1 bg-red-500 text-white text-xs font-bold rounded-full shadow-lg">
+                          {offer.requestCount === 1 ? '1 Anfrage' : `${offer.requestCount} Anfragen`}
+                        </div>
+                      </div>
+                    )}
+                    
                     {/* Burger-Menü */}
                     <div className="absolute bottom-3 right-3 z-20">
                       <button
@@ -280,10 +306,15 @@ export default function MyOffersPage() {
                   key={`menu-${offer.id}`}
                   offerId={offer.id}
                   isReserved={offer.isReserved || false}
+                  hasRequests={(offer.requestCount || 0) > 0}
                   isFirstItem={index === 0}
                   onEdit={() => {
                     setOpenMenuId(null)
                     router.push(`/offer/edit/${offer.id}`)
+                  }}
+                  onManageRequests={() => {
+                    setOpenMenuId(null)
+                    openRequestsDrawer(offer.id)
                   }}
                   onReserve={() => openReserveModal(offer.id, offer.isReserved || false)}
                   onDelete={() => openDeleteModal(offer.id)}
@@ -368,6 +399,52 @@ export default function MyOffersPage() {
         </div>
       )}
 
+      {/* Respond Modal (Accept/Reject) */}
+      {respondModalOpen && respondAction && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-3">
+              {respondAction.action === 'accept' ? 'Anfrage akzeptieren' : 'Anfrage ablehnen'}
+            </h3>
+            <p className="text-gray-700 mb-2 text-sm">
+              <strong>{respondAction.requesterName}</strong>
+            </p>
+            <p className="text-gray-700 mb-4 text-sm">
+              Du kannst optional eine Nachricht hinzufügen:
+            </p>
+            <textarea
+              value={respondMessage}
+              onChange={(e) => setRespondMessage(e.target.value)}
+              placeholder="Nachricht (optional)"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D04D2E] focus:border-transparent resize-none text-gray-900"
+              rows={4}
+            />
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setRespondModalOpen(false)
+                  setRespondAction(null)
+                  setRespondMessage('')
+                }}
+                className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 font-medium"
+              >
+                Abbrechen
+              </button>
+              <button
+                onClick={handleRespondToRequest}
+                className={`flex-1 px-4 py-2 text-white rounded-lg font-medium ${
+                  respondAction.action === 'accept'
+                    ? 'bg-green-600 hover:bg-green-700'
+                    : 'bg-red-600 hover:bg-red-700'
+                }`}
+              >
+                {respondAction.action === 'accept' ? 'Akzeptieren' : 'Ablehnen'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Request Drawer */}
       <Drawer
         open={requestDrawerOpen}
@@ -411,13 +488,13 @@ export default function MyOffersPage() {
                 {req.status === 'PENDING' && (
                   <div className="flex gap-2 mt-3">
                     <button
-                      onClick={() => handleRespondToRequest(req.requesterId, 'accept')}
+                      onClick={() => openRespondModal(req.requesterId, 'accept', req.requesterName)}
                       className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium"
                     >
                       Akzeptieren
                     </button>
                     <button
-                      onClick={() => handleRespondToRequest(req.requesterId, 'reject')}
+                      onClick={() => openRespondModal(req.requesterId, 'reject', req.requesterName)}
                       className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium"
                     >
                       Ablehnen
@@ -436,16 +513,20 @@ export default function MyOffersPage() {
 function BurgerMenu({
   offerId,
   isReserved,
+  hasRequests,
   isFirstItem,
   onEdit,
+  onManageRequests,
   onReserve,
   onDelete,
   onClose,
 }: {
   offerId: string
   isReserved: boolean
+  hasRequests: boolean
   isFirstItem: boolean
   onEdit: () => void
+  onManageRequests: () => void
   onReserve: () => void
   onDelete: () => void
   onClose: () => void
@@ -475,9 +556,18 @@ function BurgerMenu({
   return (
     <div
       ref={menuRef}
-      className="fixed z-50 w-48 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden"
+      className="fixed z-50 w-52 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden"
       onClick={(e) => e.stopPropagation()}
     >
+      {hasRequests && (
+        <button
+          onClick={onManageRequests}
+          className="w-full text-left px-4 py-3 hover:bg-gray-50 text-sm text-gray-900 flex items-center gap-2 border-b border-gray-100"
+        >
+          <span>📋</span>
+          <span>Anfragen bearbeiten</span>
+        </button>
+      )}
       <button
         onClick={onEdit}
         className="w-full text-left px-4 py-3 hover:bg-gray-50 text-sm text-gray-900 flex items-center gap-2 border-b border-gray-100"
