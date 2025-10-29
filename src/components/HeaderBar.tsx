@@ -22,6 +22,7 @@ export default function HeaderBar() {
   const [openProfile, setOpenProfile] = useState(false)
   const [openBell, setOpenBell] = useState(false)
   const [openChat, setOpenChat] = useState(false)
+  const [openBurger, setOpenBurger] = useState(false)
 
   // Badge-Zahlen
   const [unreadNotifs, setUnreadNotifs] = useState<number>(0)
@@ -39,8 +40,10 @@ export default function HeaderBar() {
   const profileRef = useRef<HTMLDivElement>(null)
   const bellRef = useRef<HTMLDivElement>(null)
   const chatRef = useRef<HTMLDivElement>(null)
+  const burgerRef = useRef<HTMLDivElement>(null)
 
   useOnClickOutside(profileRef, () => setOpenProfile(false))
+  useOnClickOutside(burgerRef, () => setOpenBurger(false))
 
   // Fetch Badge Counts
   useEffect(() => {
@@ -162,7 +165,7 @@ export default function HeaderBar() {
           <div className="relative" ref={chatRef}>
             <button
               type="button"
-              onClick={() => { setOpenChat(true); setOpenBell(false); setOpenProfile(false) }}
+              onClick={() => { setOpenChat(true); setOpenBell(false); setOpenProfile(false); setOpenBurger(false) }}
               aria-haspopup="dialog"
               aria-expanded={openChat}
               className="inline-flex items-center justify-center w-8 h-8 rounded-full border border-white/40 hover:bg-white/20 active:scale-[0.98] transition"
@@ -187,7 +190,7 @@ export default function HeaderBar() {
           <div className="relative" ref={bellRef}>
             <button
               type="button"
-              onClick={() => { setOpenBell(true); setOpenChat(false); setOpenProfile(false) }}
+              onClick={() => { setOpenBell(true); setOpenChat(false); setOpenProfile(false); setOpenBurger(false) }}
               aria-haspopup="dialog"
               aria-expanded={openBell}
               className="inline-flex items-center justify-center w-8 h-8 rounded-full border border-white/40 hover:bg-white/20 active:scale-[0.98] transition"
@@ -208,11 +211,54 @@ export default function HeaderBar() {
             </button>
           </div>
 
+          {/* Burger-Menü */}
+          <div className="relative" ref={burgerRef}>
+            <button
+              type="button"
+              onClick={() => { setOpenBurger(v => !v); setOpenBell(false); setOpenChat(false); setOpenProfile(false) }}
+              aria-haspopup="menu"
+              aria-expanded={openBurger}
+              className="inline-flex items-center justify-center w-8 h-8 rounded-full border border-white/40 hover:bg-white/20 active:scale-[0.98] transition"
+              title="Menü"
+            >
+              {/* Burger-Icon: 3 horizontale Striche */}
+              <div className="flex flex-col gap-[3px]">
+                <div className="w-4 h-[2px] bg-white rounded"></div>
+                <div className="w-4 h-[2px] bg-white rounded"></div>
+                <div className="w-4 h-[2px] bg-white rounded"></div>
+              </div>
+            </button>
+
+            {openBurger && (
+              <div
+                role="menu"
+                className="absolute right-0 mt-2 w-44 rounded-xl border border-gray-300 bg-gray-50 shadow-lg overflow-hidden"
+              >
+                <Link
+                  href="/pending-reviews"
+                  className="flex items-center justify-between px-3 py-2 text-sm text-gray-900 hover:bg-gray-100"
+                  onClick={() => setOpenBurger(false)}
+                  role="menuitem"
+                >
+                  <span>Offene Bewertungen</span>
+                </Link>
+                <Link
+                  href="/my-stats"
+                  className="flex items-center justify-between px-3 py-2 text-sm text-gray-900 hover:bg-gray-100"
+                  onClick={() => setOpenBurger(false)}
+                  role="menuitem"
+                >
+                  <span>Meine Statistik</span>
+                </Link>
+              </div>
+            )}
+          </div>
+
           {/* Profil + Menü */}
           <div className="relative" ref={profileRef}>
             <button
               type="button"
-              onClick={() => { setOpenProfile(v => !v); setOpenBell(false); setOpenChat(false) }}
+              onClick={() => { setOpenProfile(v => !v); setOpenBell(false); setOpenChat(false); setOpenBurger(false) }}
               aria-haspopup="menu"
               aria-expanded={openProfile}
               className="inline-flex items-center justify-center w-8 h-8 rounded-full border border-white/40 hover:bg-white/20 active:scale-[0.98] transition"
