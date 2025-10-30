@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { sendEmail } from '@/lib/replitmail'
 import { getUserIdFromCookie } from '@/lib/auth'
+import { sendSystemMessage } from '@/lib/messaging'
 
 // POST /api/requests/cancel
 // body: { offerId: string, reason?: string }
@@ -130,16 +131,12 @@ export async function POST(req: Request) {
       },
     }).catch(() => null)
 
-    // 2) InboxMessage
-    await prisma.inboxMessage.create({
-      data: {
-        fromUserId: canceller.id,
-        toUserId: recipient.id,
-        subject: `Spielabsage: ${clubName} ${ageLabel}`,
-        message: `Hallo,\n\nich muss leider das Spiel vom ${offerDate} absagen.${reasonText}\n\nTut mir leid für die Unannehmlichkeiten.`,
-        relatedOfferId: offerId,
-        relatedRequestId: `${request.requesterUserId}_${offerId}`,
-      },
+    // 2) Chat-Nachricht
+    const cancelMessage = `Hallo,\n\nich muss leider das vereinbarte Spiel (${clubName} ${ageLabel} am ${offerDate}) absagen.${reasonText}\n\nTut mir leid für die Unannehmlichkeiten.`
+    await sendSystemMessage({
+      fromUserId: canceller.id,
+      toUserId: recipient.id,
+      text: cancelMessage,
     }).catch(() => null)
 
     // 3) Email
@@ -168,16 +165,15 @@ export async function POST(req: Request) {
         },
       }).catch(() => null)
 
-      // InboxMessage
-      await prisma.inboxMessage.create({
-        data: {
-          fromUserId: request.offer.team?.contactUserId || '',
+      // Chat-Nachricht (nur wenn contactUserId verfügbar)
+      if (request.offer.team?.contactUserId) {
+        const availableMessage = `Ein von dir gemerktes Spielangebot ist wieder verfügbar!\n\nVerein: ${clubName}\nAltersklasse: ${ageLabel}\nDatum: ${offerDate}\n\nDu kannst jetzt eine Anfrage senden.`
+        await sendSystemMessage({
+          fromUserId: request.offer.team.contactUserId,
           toUserId: savedUser.id,
-          subject: `Gemerktes Spiel verfügbar: ${clubName} ${ageLabel}`,
-          message: `Hallo,\n\nein von dir gemerktes Spiel ist wieder verfügbar:\n\nVerein: ${clubName}\nAltersklasse: ${ageLabel}\nDatum: ${offerDate}\n\nDu kannst jetzt eine Anfrage für dieses Spiel senden!\n\nViele Grüße,\niMatch`,
-          relatedOfferId: offerId,
-        },
-      }).catch(() => null)
+          text: availableMessage,
+        }).catch(() => null)
+      }
 
       // Email
       if (savedUser.email) {

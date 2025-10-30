@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getUserIdFromCookie } from '@/lib/auth'
 import { sendEmail } from '@/lib/replitmail'
+import { sendSystemMessage } from '@/lib/messaging'
 
 // POST /api/requests/[offerId]/respond
 // body: { requesterId: string, action: 'accept' | 'reject', message?: string }
@@ -122,20 +123,15 @@ export async function POST(
         },
       }).catch(() => null)
 
-      // 2) InboxMessage
+      // 2) Chat-Nachricht
       const acceptMessage = optionalMessage 
-        ? `Deine Anfrage wurde akzeptiert! Das Spiel gegen ${clubName} am ${offerDate} ist vereinbart.\n\nNachricht von ${ownerName}: ${optionalMessage}`
-        : `Deine Anfrage wurde akzeptiert! Das Spiel gegen ${clubName} am ${offerDate} ist vereinbart.`
+        ? `Ich habe deine Anfrage für unser Spielangebot (${clubName} ${ageLabel} am ${offerDate}) akzeptiert! 🎉\n\nDas Spiel ist vereinbart.\n\nMeine Nachricht: ${optionalMessage}`
+        : `Ich habe deine Anfrage für unser Spielangebot (${clubName} ${ageLabel} am ${offerDate}) akzeptiert! 🎉\n\nDas Spiel ist vereinbart.`
       
-      await prisma.inboxMessage.create({
-        data: {
-          fromUserId: userId,
-          toUserId: requesterId,
-          subject: `Spielanfrage akzeptiert: ${clubName} ${ageLabel}`,
-          message: acceptMessage,
-          relatedOfferId: offerId,
-          relatedRequestId: `${requesterId}_${offerId}`,
-        },
+      await sendSystemMessage({
+        fromUserId: userId,
+        toUserId: requesterId,
+        text: acceptMessage,
       }).catch(() => null)
 
       // 3) Email
@@ -172,20 +168,15 @@ export async function POST(
         },
       }).catch(() => null)
 
-      // 2) InboxMessage
+      // 2) Chat-Nachricht
       const rejectMessage = optionalMessage 
-        ? `Leider wurde deine Anfrage für das Spiel gegen ${clubName} am ${offerDate} abgelehnt.\n\nNachricht von ${ownerName}: ${optionalMessage}`
-        : `Leider wurde deine Anfrage für das Spiel gegen ${clubName} am ${offerDate} abgelehnt.`
+        ? `Leider muss ich deine Anfrage für unser Spielangebot (${clubName} ${ageLabel} am ${offerDate}) ablehnen.\n\nMeine Nachricht: ${optionalMessage}`
+        : `Leider muss ich deine Anfrage für unser Spielangebot (${clubName} ${ageLabel} am ${offerDate}) ablehnen.`
       
-      await prisma.inboxMessage.create({
-        data: {
-          fromUserId: userId,
-          toUserId: requesterId,
-          subject: `Spielanfrage abgelehnt: ${clubName} ${ageLabel}`,
-          message: rejectMessage,
-          relatedOfferId: offerId,
-          relatedRequestId: `${requesterId}_${offerId}`,
-        },
+      await sendSystemMessage({
+        fromUserId: userId,
+        toUserId: requesterId,
+        text: rejectMessage,
       }).catch(() => null)
 
       // 3) Email

@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { sendEmail } from '@/lib/replitmail'
 import { getUserIdFromCookie } from '@/lib/auth'
+import { sendSystemMessage } from '@/lib/messaging'
 
 // GET /api/requests
 // - optional: ?ids=offer1,offer2 -> returns which of these are already requested by the user
@@ -117,16 +118,12 @@ export async function POST(req: Request) {
         },
       }).catch(() => null)
 
-      // 2) InboxMessage
-      await prisma.inboxMessage.create({
-        data: {
-          fromUserId: userId,
-          toUserId: targetUserId,
-          subject: `Spielanfrage für ${clubName} ${ageLabel}`,
-          message: message || `Ich interessiere mich für dein Spielangebot vom ${offerDate}.`,
-          relatedOfferId: offerId,
-          relatedRequestId: `${userId}_${offerId}`,
-        },
+      // 2) Chat-Nachricht
+      const chatMessage = `Hallo! Ich interessiere mich für euer Spielangebot (${clubName} ${ageLabel} am ${offerDate}).${message ? `\n\nMeine Nachricht: ${message}` : ''}`
+      await sendSystemMessage({
+        fromUserId: userId,
+        toUserId: targetUserId,
+        text: chatMessage,
       }).catch(() => null)
 
       // 3) Email - silently fail if email not configured
@@ -150,7 +147,7 @@ export async function POST(req: Request) {
 }
 
 // DELETE /api/requests
-// body: { offerId: string }
+// body: { offerId: string, reason?: string }
 export async function DELETE(req: Request) {
   try {
     const userId = await getUserIdFromCookie()
@@ -159,7 +156,40 @@ export async function DELETE(req: Request) {
     }
     const body = await req.json().catch(() => ({}))
     const offerId = String(body?.offerId || '').trim()
+    const reason = typeof body?.reason === 'string' ? body.reason.trim() : null
     if (!offerId) return NextResponse.json({ error: 'offerId fehlt' }, { status: 400 })
+
+    // Get request and offer details before deleting
+    const request = await prisma.offerRequest.findUnique({
+      where: { requesterUserId_offerId: { requesterUserId: userId, offerId } },
+      include: {
+        offer: {
+          include: {
+            team: {
+              include: {
+                club: true,
+                contactUser: { select: { id: true, firstName: true, lastName: true } }
+              }
+            },
+            ages: true,
+          }
+        }
+      }
+    })
+
+    if (request && request.offer.team?.contactUserId) {
+      const clubName = request.offer.team.club?.name || 'Unbekannter Verein'
+      const ageLabel = request.offer.ages[0]?.ageGroup || '—'
+      const offerDate = request.offer.offerDate ? new Date(request.offer.offerDate).toLocaleDateString('de-DE') : '—'
+      
+      // Send chat message to offer owner
+      const chatMessage = `Ich habe meine Anfrage für euer Spielangebot (${clubName} ${ageLabel} am ${offerDate}) zurückgezogen.${reason ? `\n\nGrund: ${reason}` : ''}`
+      await sendSystemMessage({
+        fromUserId: userId,
+        toUserId: request.offer.team.contactUserId,
+        text: chatMessage,
+      }).catch(() => null)
+    }
 
     await prisma.offerRequest.delete({
       where: { requesterUserId_offerId: { requesterUserId: userId, offerId } },
