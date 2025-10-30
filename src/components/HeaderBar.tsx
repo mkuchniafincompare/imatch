@@ -21,7 +21,6 @@ export default function HeaderBar() {
   const router = useRouter()
   const [openProfile, setOpenProfile] = useState(false)
   const [openBell, setOpenBell] = useState(false)
-  const [openChat, setOpenChat] = useState(false)
   const [openBurger, setOpenBurger] = useState(false)
 
   // Badge-Zahlen
@@ -30,16 +29,13 @@ export default function HeaderBar() {
   
   // Drawer-Inhalte
   const [notifications, setNotifications] = useState<any[]>([])
-  const [messages, setMessages] = useState<any[]>([])
   const [loadingNotifs, setLoadingNotifs] = useState(false)
-  const [loadingMsgs, setLoadingMsgs] = useState(false)
   
   // Club-Status für Warnungs-Badge
   const [hasClub, setHasClub] = useState<boolean | null>(null)
 
   const profileRef = useRef<HTMLDivElement>(null)
   const bellRef = useRef<HTMLDivElement>(null)
-  const chatRef = useRef<HTMLDivElement>(null)
   const burgerRef = useRef<HTMLDivElement>(null)
 
   useOnClickOutside(profileRef, () => setOpenProfile(false))
@@ -53,7 +49,7 @@ export default function HeaderBar() {
         const [clubRes, notifsRes, msgsRes] = await Promise.all([
           fetch('/api/profile/affiliation', { cache: 'no-store' }),
           fetch('/api/notifications', { cache: 'no-store' }),
-          fetch('/api/messages', { cache: 'no-store' }),
+          fetch('/api/messaging/unread-count', { cache: 'no-store' }),
         ])
         
         if (!alive) return
@@ -92,21 +88,6 @@ export default function HeaderBar() {
       .finally(() => setLoadingNotifs(false))
   }, [openBell])
 
-  // Fetch Messages when drawer opens
-  useEffect(() => {
-    if (!openChat) return
-    
-    setLoadingMsgs(true)
-    fetch('/api/messages')
-      .then(res => res.json())
-      .then(data => {
-        setMessages(data.items || [])
-        setUnreadMessages(data.unreadCount || 0)
-      })
-      .catch(() => setMessages([]))
-      .finally(() => setLoadingMsgs(false))
-  }, [openChat])
-
   async function markNotificationRead(id: string) {
     try {
       await fetch('/api/notifications', {
@@ -118,20 +99,6 @@ export default function HeaderBar() {
       setUnreadNotifs(prev => Math.max(0, prev - 1))
     } catch (e) {
       console.error('Failed to mark notification as read:', e)
-    }
-  }
-
-  async function markMessageRead(id: string) {
-    try {
-      await fetch('/api/messages', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messageId: id }),
-      })
-      setMessages(prev => prev.map(m => m.id === id ? { ...m, read: true } : m))
-      setUnreadMessages(prev => Math.max(0, prev - 1))
-    } catch (e) {
-      console.error('Failed to mark message as read:', e)
     }
   }
 
@@ -181,7 +148,7 @@ export default function HeaderBar() {
           <div className="relative" ref={bellRef}>
             <button
               type="button"
-              onClick={() => { setOpenBell(true); setOpenChat(false); setOpenProfile(false); setOpenBurger(false) }}
+              onClick={() => { setOpenBell(true); setOpenProfile(false); setOpenBurger(false) }}
               aria-haspopup="dialog"
               aria-expanded={openBell}
               className="inline-flex items-center justify-center w-8 h-8 rounded-full border border-white/40 hover:bg-white/20 active:scale-[0.98] transition"
@@ -206,7 +173,7 @@ export default function HeaderBar() {
           <div className="relative" ref={burgerRef}>
             <button
               type="button"
-              onClick={() => { setOpenBurger(v => !v); setOpenBell(false); setOpenChat(false); setOpenProfile(false) }}
+              onClick={() => { setOpenBurger(v => !v); setOpenBell(false); setOpenProfile(false) }}
               aria-haspopup="menu"
               aria-expanded={openBurger}
               className="inline-flex items-center justify-center w-8 h-8 rounded-full border border-white/40 hover:bg-white/20 active:scale-[0.98] transition"
@@ -249,7 +216,7 @@ export default function HeaderBar() {
           <div className="relative" ref={profileRef}>
             <button
               type="button"
-              onClick={() => { setOpenProfile(v => !v); setOpenBell(false); setOpenChat(false); setOpenBurger(false) }}
+              onClick={() => { setOpenProfile(v => !v); setOpenBell(false); setOpenBurger(false) }}
               aria-haspopup="menu"
               aria-expanded={openProfile}
               className="inline-flex items-center justify-center w-8 h-8 rounded-full border border-white/40 hover:bg-white/20 active:scale-[0.98] transition"
@@ -309,43 +276,6 @@ export default function HeaderBar() {
           </div>
         </div>
       </div>
-
-      {/* Drawer: Nachrichten */}
-      <Drawer
-        open={openChat}
-        onClose={() => setOpenChat(false)}
-        title="Nachrichten"
-        side="right"
-      >
-        {loadingMsgs ? (
-          <div className="text-sm text-gray-700">Lade Nachrichten...</div>
-        ) : messages.length === 0 ? (
-          <div className="text-sm text-gray-700">Keine Nachrichten vorhanden.</div>
-        ) : (
-          <div className="space-y-3">
-            {messages.map((msg) => (
-              <div
-                key={msg.id}
-                onClick={() => !msg.read && markMessageRead(msg.id)}
-                className={`p-3 rounded-lg border cursor-pointer ${
-                  msg.read ? 'bg-white border-gray-200' : 'bg-blue-50 border-blue-300'
-                }`}
-              >
-                <div className="flex items-start justify-between mb-1">
-                  <div className="font-semibold text-sm text-gray-900">{msg.subject}</div>
-                  {!msg.read && (
-                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  )}
-                </div>
-                <div className="text-xs text-gray-700 line-clamp-2">{msg.message}</div>
-                <div className="text-xs text-gray-500 mt-1">
-                  {new Date(msg.createdAt).toLocaleDateString('de-DE')}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </Drawer>
 
       {/* Drawer: Benachrichtigungen */}
       <Drawer
