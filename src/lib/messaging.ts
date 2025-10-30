@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 /**
  * Sendet eine automatische System-Nachricht zwischen zwei Usern
  * Findet oder erstellt eine Konversation und fügt die Nachricht hinzu
+ * Idempotent und race-condition-safe durch Verwendung von Transaktionen
  */
 export async function sendSystemMessage(params: {
   fromUserId: string
@@ -14,37 +15,32 @@ export async function sendSystemMessage(params: {
   // Sortiere User-IDs für konsistente Konversations-Speicherung
   const [user1Id, user2Id] = [fromUserId, toUserId].sort()
 
-  // Finde oder erstelle Konversation
-  let conversation = await prisma.conversation.findUnique({
-    where: {
-      user1Id_user2Id: {
-        user1Id,
-        user2Id,
+  // Verwende eine Transaktion, um Race Conditions zu vermeiden
+  await prisma.$transaction(async (tx) => {
+    // Finde oder erstelle Konversation (upsert ist idempotent)
+    const conversation = await tx.conversation.upsert({
+      where: {
+        user1Id_user2Id: {
+          user1Id,
+          user2Id,
+        },
       },
-    },
-  })
-
-  if (!conversation) {
-    conversation = await prisma.conversation.create({
-      data: {
+      update: {
+        updatedAt: new Date(),
+      },
+      create: {
         user1Id,
         user2Id,
       },
     })
-  }
 
-  // Erstelle Chat-Nachricht
-  await prisma.chatMessage.create({
-    data: {
-      conversationId: conversation.id,
-      senderId: fromUserId,
-      text,
-    },
-  })
-
-  // Update Conversation updatedAt
-  await prisma.conversation.update({
-    where: { id: conversation.id },
-    data: { updatedAt: new Date() },
+    // Erstelle Chat-Nachricht
+    await tx.chatMessage.create({
+      data: {
+        conversationId: conversation.id,
+        senderId: fromUserId,
+        text,
+      },
+    })
   })
 }
