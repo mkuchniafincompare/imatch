@@ -136,8 +136,6 @@ model User {
   requests  OfferRequest[]
   
   notificationsReceived Notification[]
-  messagesSent          InboxMessage[]   @relation("SentMessages")
-  messagesReceived      InboxMessage[]   @relation("ReceivedMessages")
   
   conversationsAsUser1 Conversation[] @relation("ConversationUser1")
   conversationsAsUser2 Conversation[] @relation("ConversationUser2")
@@ -357,28 +355,6 @@ model Notification {
 
   @@index([userId, read, createdAt])
   @@index([createdAt])
-}
-
-model InboxMessage {
-  id String @id @default(cuid())
-
-  fromUserId String
-  toUserId   String
-
-  subject String
-  message String
-
-  relatedOfferId  String?
-  relatedRequestId String? // format: "userId_offerId" for composite key
-
-  read      Boolean  @default(false)
-  createdAt DateTime @default(now())
-
-  sender   User @relation("SentMessages", fields: [fromUserId], references: [id], onDelete: Cascade)
-  receiver User @relation("ReceivedMessages", fields: [toUserId], references: [id], onDelete: Cascade)
-
-  @@index([toUserId, read, createdAt])
-  @@index([fromUserId, createdAt])
 }
 
 model Conversation {
