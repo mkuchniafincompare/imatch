@@ -23,6 +23,7 @@ type OfferItem = {
   address?: string | null
   logoUrl?: string | null
   ownerId?: string | null
+  matchType?: string
 }
 
 type HomeAway = 'HOME' | 'AWAY' | 'FLEX' | null
@@ -504,6 +505,7 @@ export default function MatchesPage() {
                 strengthLabel={it.strengthLabel}
                 address={it.address}
                 logoUrl={it.logoUrl}
+                matchType={it.matchType}
                 isSaved={isSaved(it.id)}
                 isRequested={isRequested(it.id)}
               />

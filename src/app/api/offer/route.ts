@@ -111,6 +111,7 @@ export async function GET(req: Request) {
         address,
         logoUrl: club?.logoUrl ?? null,
         ownerId: (o as any).team?.contactUserId ?? null,
+        matchType: (o as any).matchType ?? 'TESTSPIEL',
       }
     })
 
@@ -326,6 +327,7 @@ export async function GET(req: Request) {
       address,
       logoUrl: club?.logoUrl ?? null,
       ownerId: (o as any).team?.contactUserId ?? null,
+      matchType: (o as any).matchType ?? 'TESTSPIEL',
     }
   })
 
