@@ -68,7 +68,7 @@ export default function Drawer({
 
   const sizeClass = side === 'bottom' ? H : W
   const baseClass =
-    'fixed z-[70] bg-white/90 text-gray-900 border border-white/40 shadow-2xl rounded-tl-2xl rounded-tr-none rounded-bl-none backdrop-blur-xl overflow-hidden'
+    'fixed z-[70] bg-black/80 text-white border border-white/20 shadow-2xl rounded-tl-2xl rounded-tr-none rounded-bl-none backdrop-blur-xl overflow-hidden'
 
   const translateClosed =
     side === 'right'
@@ -108,12 +108,12 @@ export default function Drawer({
         ].join(' ')}
       >
         {/* Header */}
-        <div className="h-14 flex items-center justify-between px-4 border-b border-gray-200/50 bg-white/30">
-          <div className="text-base font-semibold text-gray-900 truncate">{title}</div>
+        <div className="h-14 flex items-center justify-between px-4 border-b border-white/20 bg-white/5">
+          <div className="text-base font-semibold text-white truncate">{title}</div>
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex items-center justify-center w-9 h-9 rounded-full hover:bg-gray-200/50 transition text-gray-700 hover:text-gray-900"
+            className="inline-flex items-center justify-center w-9 h-9 rounded-full hover:bg-white/10 transition text-white/80 hover:text-white"
             aria-label="Schließen"
           >
             ✕
@@ -121,7 +121,7 @@ export default function Drawer({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4 pb-4 text-sm text-gray-900">
+        <div className="flex-1 overflow-y-auto p-4 pb-4 text-sm text-white">
           {children}
         </div>
       </aside>

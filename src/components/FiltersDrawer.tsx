@@ -180,7 +180,7 @@ export default function FiltersDrawer({
             <div>
               <label className="block text-[11px] text-white/70 mb-1">Min</label>
               <select
-                className="w-full rounded-xl border border-white/25 bg-white/10 text-white px-3 py-2"
+                className="w-full rounded-xl border border-white/25 bg-white/10 text-white px-3 py-2 [&>option]:bg-gray-800 [&>option]:text-white"
                 value={strengthMin ?? ''}
                 onChange={(e) => setStrengthMin((e.target.value || '') as Strength || null)}
               >
@@ -193,7 +193,7 @@ export default function FiltersDrawer({
             <div>
               <label className="block text-[11px] text-white/70 mb-1">Max</label>
               <select
-                className="w-full rounded-xl border border-white/25 bg-white/10 text-white px-3 py-2"
+                className="w-full rounded-xl border border-white/25 bg-white/10 text-white px-3 py-2 [&>option]:bg-gray-800 [&>option]:text-white"
                 value={strengthMax ?? ''}
                 onChange={(e) => setStrengthMax((e.target.value || '') as Strength || null)}
               >
@@ -272,7 +272,7 @@ export default function FiltersDrawer({
             <div className="col-span-1">
               <label className="block text-[11px] text-white/70 mb-1">PLZ</label>
               <input
-                className="w-full rounded-xl border border-white/25 bg-white/10 text-white px-3 py-2"
+                className="w-full rounded-xl border border-white/25 bg-white/10 text-white px-3 py-2 placeholder:text-white/40"
                 value={zipcode ?? ''}
                 onChange={(e) => setZipcode(e.target.value || null)}
                 placeholder="z. B. 10115"
@@ -281,7 +281,7 @@ export default function FiltersDrawer({
             <div className="col-span-2">
               <label className="block text-[11px] text-white/70 mb-1">Ort</label>
               <input
-                className="w-full rounded-xl border border-white/25 bg-white/10 text-white px-3 py-2"
+                className="w-full rounded-xl border border-white/25 bg-white/10 text-white px-3 py-2 placeholder:text-white/40"
                 value={city ?? ''}
                 onChange={(e) => setCity(e.target.value || null)}
                 placeholder="z. B. Berlin"
