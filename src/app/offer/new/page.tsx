@@ -13,11 +13,28 @@ type Team = {
   city: string | null
 }
 
-const ALL_AGES = ['U6','U7','U8','U9','U10','U11','U12','U13','U14','U15','U16','U17','U18','U19'] as const
-type Age = typeof ALL_AGES[number]
+// Zwei-stufige Altersklassen
+type AgeCategory = 'JUNIOREN' | 'JUNIORINNEN' | 'HERREN' | 'DAMEN' | 'FREIZEITLIGA'
+type JuniorenAge = 'U6'|'U7'|'U8'|'U9'|'U10'|'U11'|'U12'|'U13'|'U14'|'U15'|'U16'|'U17'|'U18'|'U19'
+type JuniorinnenAge = 'U15' | 'U17'
+type HerrenAge = 'HERREN' | 'Ü32' | 'Ü40' | 'Ü50' | 'Ü60'
+type SubAge = JuniorenAge | JuniorinnenAge | HerrenAge
+
+const AGE_CATEGORY_LABEL: Record<AgeCategory, string> = {
+  JUNIOREN: 'Junioren',
+  JUNIORINNEN: 'Juniorinnen',
+  HERREN: 'Herren',
+  DAMEN: 'Damen',
+  FREIZEITLIGA: 'Freizeitliga',
+}
+
+const JUNIOREN_AGES: JuniorenAge[] = ['U6','U7','U8','U9','U10','U11','U12','U13','U14','U15','U16','U17','U18','U19']
+const JUNIORINNEN_AGES: JuniorinnenAge[] = ['U15', 'U17']
+const HERREN_AGES: HerrenAge[] = ['HERREN', 'Ü32', 'Ü40', 'Ü50', 'Ü60']
 
 type HomeAway = 'HOME' | 'AWAY' | 'FLEX'
 type FieldType = 'FIELD' | 'TURF' | 'HALL'
+type MatchType = 'TESTSPIEL' | 'LEISTUNGSVERGLEICH'
 type Strength =
   | 'SEHR_SCHWACH' | 'SCHWACH' | 'NORMAL' | 'STARK' | 'SEHR_STARK'
   | 'GRUPPE' | 'KREISKLASSE' | 'KREISLIGA' | 'BEZIRKSOBERLIGA' | 'FOERDERLIGA' | 'NLZ_LIGA'
@@ -25,6 +42,7 @@ type Strength =
 type PlayForm = 'FUNINO' | 'FUSSBALL_4' | 'FUSSBALL_5' | 'FUSSBALL_7' | 'NEUN_GEGEN_NEUN' | 'ELF_GEGEN_ELF'
 
 const FIELD_TYPE_LABEL: Record<FieldType, string> = { FIELD: 'Rasen', TURF: 'Kunstrasen', HALL: 'Halle' }
+const MATCH_TYPE_LABEL: Record<MatchType, string> = { TESTSPIEL: 'Testspiel', LEISTUNGSVERGLEICH: 'Leistungsvergleich' }
 const PLAYFORM_LABEL: Record<PlayForm, string> = {
   FUNINO: 'Funino',
   FUSSBALL_4: 'Fußball 4',
@@ -56,13 +74,18 @@ const STRENGTH_U6_U11: Strength[] = ['SEHR_SCHWACH','SCHWACH','NORMAL','STARK','
 const STRENGTH_U12_U13: Strength[] = ['GRUPPE','KREISKLASSE','KREISLIGA','BEZIRKSOBERLIGA','FOERDERLIGA','NLZ_LIGA']
 const STRENGTH_U14_UP: Strength[] = [...STRENGTH_U12_U13, 'BAYERNLIGA','REGIONALLIGA']
 
-function minAgeNumeric(ages: Age[]) {
-  if (!ages.length) return 19
-  return Math.min(...ages.map(a => Number(a.slice(1))))
+function minAgeNumeric(ages: string[]): number {
+  const nums = ages.map(a => {
+    if (a.startsWith('U')) return Number(a.slice(1))
+    return 99
+  }).filter(n => n !== 99)
+  if (!nums.length) return 19
+  return Math.min(...nums)
 }
-function mergedStrengthOptions(selectedAges: Age[]): Strength[] {
-  if (!selectedAges.length) return STRENGTH_U6_U11
-  const minAge = minAgeNumeric(selectedAges)
+
+function mergedStrengthOptions(selectedSubAges: SubAge[]): Strength[] {
+  if (!selectedSubAges.length) return STRENGTH_U6_U11
+  const minAge = minAgeNumeric(selectedSubAges)
   if (minAge <= 11) return STRENGTH_U6_U11
   if (minAge <= 13) return STRENGTH_U12_U13
   return STRENGTH_U14_UP
@@ -74,12 +97,21 @@ export default function NewOfferPage() {
   const router = useRouter()
   const [teams, setTeams] = useState<Team[]>([])
   const [teamId, setTeamId] = useState('')
-  const [selectedAges, setSelectedAges] = useState<Age[]>([])
+  
+  // Zwei-stufige Altersklassen
+  const [ageCategory, setAgeCategory] = useState<AgeCategory | ''>('')
+  const [selectedSubAges, setSelectedSubAges] = useState<SubAge[]>([])
+  
   const [offerDate, setOfferDate] = useState('')
   const [kickoffTime, setKickoffTime] = useState('')
   const [kickoffFlexible, setKickoffFlexible] = useState(false)
   const [homeAway, setHomeAway] = useState<HomeAway>('FLEX')
   const [fieldType, setFieldType] = useState<FieldType>('FIELD')
+  
+  // Spielart
+  const [matchType, setMatchType] = useState<MatchType>('TESTSPIEL')
+  const [numberOfOpponents, setNumberOfOpponents] = useState('')
+  
   const [playForm, setPlayForm] = useState<PlayForm | ''>('')
   const [strength, setStrength] = useState<Strength | ''>('')
   const [durationText, setDurationText] = useState('')
@@ -95,17 +127,28 @@ export default function NewOfferPage() {
       setTeams(items)
       if (items.length > 0) {
         setTeamId(items[0].id)
-        const ag = items[0].ageGroup as Age
-        if (ALL_AGES.includes(ag)) setSelectedAges([ag])
       }
     })
   }, [])
 
-  const strengthOptions = useMemo(() => mergedStrengthOptions(selectedAges), [selectedAges])
+  const strengthOptions = useMemo(() => mergedStrengthOptions(selectedSubAges), [selectedSubAges])
 
-  function toggleAge(age: Age) {
-    setSelectedAges(prev => prev.includes(age) ? prev.filter(a => a !== age) : [...prev, age])
+  // Sub-Ages abhängig von AgeCategory
+  const availableSubAges: SubAge[] = useMemo(() => {
+    if (ageCategory === 'JUNIOREN') return JUNIOREN_AGES
+    if (ageCategory === 'JUNIORINNEN') return JUNIORINNEN_AGES
+    if (ageCategory === 'HERREN') return HERREN_AGES
+    return []
+  }, [ageCategory])
+
+  function toggleSubAge(age: SubAge) {
+    setSelectedSubAges(prev => prev.includes(age) ? prev.filter(a => a !== age) : [...prev, age])
   }
+
+  // Reset Sub-Ages wenn Category wechselt
+  useEffect(() => {
+    setSelectedSubAges([])
+  }, [ageCategory])
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -113,19 +156,32 @@ export default function NewOfferPage() {
     setLoading(true)
     try {
       if (!teamId) throw new Error('Kein Team gewählt')
-      if (!selectedAges.length) throw new Error('Mindestens eine Altersklasse wählen')
+      if (!ageCategory) throw new Error('Bitte Altersklasse wählen')
+      
+      // Validierung: Sub-Ages nur wenn verfügbar
+      if (availableSubAges.length > 0 && selectedSubAges.length === 0) {
+        throw new Error('Bitte mindestens eine Altersstufe wählen')
+      }
+      
       if (!offerDate) throw new Error('Bitte Datum wählen')
       if (!kickoffFlexible && !kickoffTime) throw new Error('Bitte Anstoßzeit setzen oder „flexibel" wählen')
+      
+      if (matchType === 'LEISTUNGSVERGLEICH' && !numberOfOpponents) {
+        throw new Error('Bitte Anzahl Gegner angeben')
+      }
 
       const res = await fetch('/api/offer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           teamId,
-          ages: selectedAges,
+          ageCategory,
+          ages: availableSubAges.length > 0 ? selectedSubAges : [],
           offerDate,
           kickoffTime: kickoffFlexible ? null : kickoffTime,
           kickoffFlexible,
+          matchType,
+          numberOfOpponents: matchType === 'LEISTUNGSVERGLEICH' ? Number(numberOfOpponents) : null,
           strength: strength || null,
           playForm: playForm || null,
           durationText: durationText || null,
@@ -167,50 +223,64 @@ export default function NewOfferPage() {
           <div>
             <label className="block text-xs font-medium mb-1.5 text-white/90">Team</label>
             <select
-              className="w-full rounded-lg bg-white/10 backdrop-blur-sm border border-white/20 px-3 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-white/30"
+              className="w-full rounded-lg bg-white/10 backdrop-blur-sm border border-white/20 px-3 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-white/30 [&>option]:bg-gray-800 [&>option]:text-white"
               value={teamId}
-              onChange={e => {
-                const id = e.target.value
-                setTeamId(id)
-                const t = teams.find(tt => tt.id === id)
-                if (t) {
-                  const ag = t.ageGroup as Age
-                  if (ALL_AGES.includes(ag) && selectedAges.length === 0) {
-                    setSelectedAges([ag])
-                  }
-                }
-              }}
+              onChange={e => setTeamId(e.target.value)}
             >
               {teams.map(t => (
-                <option key={t.id} value={t.id} className="bg-gray-800 text-white">
+                <option key={t.id} value={t.id}>
                   {t.club ?? 'Verein'}
                 </option>
               ))}
             </select>
           </div>
 
-          {/* Altersklassen */}
+          {/* Altersklasse (Level 1) */}
           <div>
             <label className="block text-xs font-medium mb-2 text-white/90">Altersklasse</label>
             <div className="flex flex-wrap gap-2">
-              {ALL_AGES.map(age => (
+              {(['JUNIOREN', 'JUNIORINNEN', 'HERREN', 'DAMEN', 'FREIZEITLIGA'] as AgeCategory[]).map(cat => (
                 <button
-                  key={age}
+                  key={cat}
                   type="button"
-                  onClick={() => toggleAge(age)}
+                  onClick={() => setAgeCategory(ageCategory === cat ? '' : cat)}
                   className={cls(
                     'px-3 py-1.5 rounded-full border text-sm font-medium transition',
-                    selectedAges.includes(age) 
+                    ageCategory === cat 
                       ? 'bg-white text-[#D04D2E] border-white' 
                       : 'bg-white/10 text-white border-white/30 hover:bg-white/20'
                   )}
                 >
-                  {age}
+                  {AGE_CATEGORY_LABEL[cat]}
                 </button>
               ))}
             </div>
-            <p className="text-[11px] text-white/60 mt-1.5">Mehrfachauswahl möglich (z. B. U12 & U13).</p>
           </div>
+
+          {/* Altersstufe (Level 2) - nur wenn verfügbar */}
+          {ageCategory && availableSubAges.length > 0 && (
+            <div>
+              <label className="block text-xs font-medium mb-2 text-white/90">Altersstufe</label>
+              <div className="flex flex-wrap gap-2">
+                {availableSubAges.map(age => (
+                  <button
+                    key={age}
+                    type="button"
+                    onClick={() => toggleSubAge(age)}
+                    className={cls(
+                      'px-3 py-1.5 rounded-full border text-sm font-medium transition',
+                      selectedSubAges.includes(age) 
+                        ? 'bg-white text-[#D04D2E] border-white' 
+                        : 'bg-white/10 text-white border-white/30 hover:bg-white/20'
+                    )}
+                  >
+                    {age}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[11px] text-white/60 mt-1.5">Mehrfachauswahl möglich.</p>
+            </div>
+          )}
 
           {/* Datum & Anstoß */}
           <div className="grid grid-cols-2 gap-3">
@@ -245,17 +315,47 @@ export default function NewOfferPage() {
             </div>
           </div>
 
+          {/* Spielart */}
+          <div>
+            <label className="block text-xs font-medium mb-1.5 text-white/90">Spielart</label>
+            <select
+              className="w-full rounded-lg bg-white/10 backdrop-blur-sm border border-white/20 px-3 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-white/30 [&>option]:bg-gray-800 [&>option]:text-white"
+              value={matchType}
+              onChange={e => setMatchType(e.target.value as MatchType)}
+            >
+              {(['TESTSPIEL', 'LEISTUNGSVERGLEICH'] as MatchType[]).map(mt => (
+                <option key={mt} value={mt}>{MATCH_TYPE_LABEL[mt]}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Anzahl Gegner (nur bei Leistungsvergleich) */}
+          {matchType === 'LEISTUNGSVERGLEICH' && (
+            <div>
+              <label className="block text-xs font-medium mb-1.5 text-white/90">Anzahl Gegner</label>
+              <input
+                type="number"
+                min="1"
+                className="w-full rounded-lg bg-white/10 backdrop-blur-sm border border-white/20 px-3 py-2.5 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
+                placeholder="z. B. 3"
+                value={numberOfOpponents}
+                onChange={e => setNumberOfOpponents(e.target.value)}
+                required
+              />
+            </div>
+          )}
+
           {/* Spielstärke */}
           <div>
             <label className="block text-xs font-medium mb-1.5 text-white/90">Spielstärke</label>
             <select
-              className="w-full rounded-lg bg-white/10 backdrop-blur-sm border border-white/20 px-3 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-white/30"
+              className="w-full rounded-lg bg-white/10 backdrop-blur-sm border border-white/20 px-3 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-white/30 [&>option]:bg-gray-800 [&>option]:text-white"
               value={strength}
               onChange={e => setStrength((e.target.value || '') as Strength | '')}
             >
-              <option value="" className="bg-gray-800 text-white">–</option>
+              <option value="">–</option>
               {strengthOptions.map(s => (
-                <option key={s} value={s} className="bg-gray-800 text-white">{STRENGTH_LABEL[s]}</option>
+                <option key={s} value={s}>{STRENGTH_LABEL[s]}</option>
               ))}
             </select>
           </div>
@@ -265,24 +365,24 @@ export default function NewOfferPage() {
             <div>
               <label className="block text-xs font-medium mb-1.5 text-white/90">Spielort</label>
               <select
-                className="w-full rounded-lg bg-white/10 backdrop-blur-sm border border-white/20 px-3 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-white/30"
+                className="w-full rounded-lg bg-white/10 backdrop-blur-sm border border-white/20 px-3 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-white/30 [&>option]:bg-gray-800 [&>option]:text-white"
                 value={homeAway}
                 onChange={e => setHomeAway(e.target.value as HomeAway)}
               >
-                <option value="HOME" className="bg-gray-800 text-white">Heimspiel</option>
-                <option value="AWAY" className="bg-gray-800 text-white">Auswärtsspiel</option>
-                <option value="FLEX" className="bg-gray-800 text-white">Heim- oder Auswärtsspiel</option>
+                <option value="HOME">Heimspiel</option>
+                <option value="AWAY">Auswärtsspiel</option>
+                <option value="FLEX">Heim- oder Auswärtsspiel</option>
               </select>
             </div>
             <div>
               <label className="block text-xs font-medium mb-1.5 text-white/90">Spielfeld</label>
               <select
-                className="w-full rounded-lg bg-white/10 backdrop-blur-sm border border-white/20 px-3 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-white/30"
+                className="w-full rounded-lg bg-white/10 backdrop-blur-sm border border-white/20 px-3 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-white/30 [&>option]:bg-gray-800 [&>option]:text-white"
                 value={fieldType}
                 onChange={e => setFieldType(e.target.value as FieldType)}
               >
                 {(['FIELD','TURF','HALL'] as FieldType[]).map(ft => (
-                  <option key={ft} value={ft} className="bg-gray-800 text-white">{FIELD_TYPE_LABEL[ft]}</option>
+                  <option key={ft} value={ft}>{FIELD_TYPE_LABEL[ft]}</option>
                 ))}
               </select>
             </div>
@@ -293,13 +393,13 @@ export default function NewOfferPage() {
             <div>
               <label className="block text-xs font-medium mb-1.5 text-white/90">Spielform</label>
               <select
-                className="w-full rounded-lg bg-white/10 backdrop-blur-sm border border-white/20 px-3 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-white/30"
+                className="w-full rounded-lg bg-white/10 backdrop-blur-sm border border-white/20 px-3 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-white/30 [&>option]:bg-gray-800 [&>option]:text-white"
                 value={playForm}
                 onChange={e => setPlayForm((e.target.value || '') as PlayForm | '')}
               >
-                <option value="" className="bg-gray-800 text-white">–</option>
+                <option value="">–</option>
                 {PLAYFORM_OPTIONS.map(p => (
-                  <option key={p} value={p} className="bg-gray-800 text-white">{PLAYFORM_LABEL[p]}</option>
+                  <option key={p} value={p}>{PLAYFORM_LABEL[p]}</option>
                 ))}
               </select>
             </div>

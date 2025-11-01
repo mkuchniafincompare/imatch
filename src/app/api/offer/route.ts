@@ -336,10 +336,13 @@ export async function GET(req: Request) {
  * Erwarteter Body (JSON):
  * {
  *   teamId: string,
- *   ages: string[],                 // z.B. ["U12","U13"]
+ *   ageCategory: "JUNIOREN"|"JUNIORINNEN"|"HERREN"|"DAMEN"|"FREIZEITLIGA",
+ *   ages: string[],                 // z.B. ["U12","U13"] oder ["HERREN", "Ü32"]
  *   offerDate: string,              // ISO oder "yyyy-mm-dd"
  *   kickoffTime?: string,           // "HH:mm"
  *   kickoffFlexible?: boolean,
+ *   matchType?: "TESTSPIEL"|"LEISTUNGSVERGLEICH",
+ *   numberOfOpponents?: number,
  *   strength?: "SEHR_SCHWACH"|...|"REGIONALLIGA"
  *   playForm?: "FUNINO"|"FUSSBALL_4"|...|"ELF_GEGEN_ELF"
  *   durationText?: string,
@@ -355,10 +358,13 @@ export async function POST(req: Request) {
 
     const {
       teamId,
+      ageCategory,
       ages, // string[]
       offerDate,
       kickoffTime,
       kickoffFlexible = false,
+      matchType = 'TESTSPIEL',
+      numberOfOpponents = null,
       strength,
       playForm,
       durationText,
@@ -412,33 +418,50 @@ export async function POST(req: Request) {
       ['FUNINO','FUSSBALL_4','FUSSBALL_5','FUSSBALL_7','NEUN_GEGEN_NEUN','ELF_GEGEN_ELF'].includes(playForm)
     if (!playOk) return NextResponse.json({ error: 'playForm ungültig' }, { status: 400 })
 
-    // 4) Erlaubte Altersklassen (U6–U19)
+    // 4) Validierung: ageCategory
+    const allowedAgeCategories = ['JUNIOREN', 'JUNIORINNEN', 'HERREN', 'DAMEN', 'FREIZEITLIGA']
+    if (!ageCategory || !allowedAgeCategories.includes(ageCategory)) {
+      return NextResponse.json({ error: 'ageCategory ist erforderlich' }, { status: 400 })
+    }
+
+    // 5) Validierung: matchType
+    const allowedMatchTypes = ['TESTSPIEL', 'LEISTUNGSVERGLEICH']
+    if (matchType && !allowedMatchTypes.includes(matchType)) {
+      return NextResponse.json({ error: 'matchType ungültig' }, { status: 400 })
+    }
+
+    // 6) Erlaubte Altersklassen (U6–U19 + HERREN, Ü32, etc.)
     const allowedAges = new Set([
-      'U6','U7','U8','U9','U10','U11','U12','U13','U14','U15','U16','U17','U18','U19'
+      'U6','U7','U8','U9','U10','U11','U12','U13','U14','U15','U16','U17','U18','U19',
+      'HERREN', 'Ü32', 'Ü40', 'Ü50', 'Ü60'
     ])
     const agesArr: string[] = Array.isArray(ages) ? ages : []
-    if (agesArr.length === 0) {
-      return NextResponse.json({ error: 'ages (mind. eine Altersklasse) ist erforderlich' }, { status: 400 })
-    }
-    for (const ag of agesArr) {
-      if (!allowedAges.has(String(ag))) {
-        return NextResponse.json({ error: `Altersklasse ${ag} aktuell nicht erlaubt` }, { status: 400 })
+    
+    // Ages sind optional wenn keine Sub-Ages verfügbar (DAMEN, FREIZEITLIGA)
+    if (agesArr.length > 0) {
+      for (const ag of agesArr) {
+        if (!allowedAges.has(String(ag))) {
+          return NextResponse.json({ error: `Altersklasse ${ag} aktuell nicht erlaubt` }, { status: 400 })
+        }
       }
     }
 
-    // 5) ALT-Felder kompatibel setzen (gleiches Datum)
+    // 7) ALT-Felder kompatibel setzen (gleiches Datum)
     const dateStart = od
     const dateEnd = od
     const fixedKickoff =
       kickoffFlexible || !kickoffTime ? null : new Date(`${od.toISOString().slice(0,10)}T${kickoffTime}:00.000Z`)
 
-    // 6) Zwei Schritte: Offer → Ages
+    // 8) Zwei Schritte: Offer → Ages
     const createdOffer = await prisma.gameOffer.create({
       data: {
         teamId,
+        ageCategory,
         offerDate: od,
         kickoffTime: kickoffTime ?? null,
         kickoffFlexible: Boolean(kickoffFlexible),
+        matchType,
+        numberOfOpponents: numberOfOpponents ? Number(numberOfOpponents) : null,
         strength: strength ?? null,
         playForm: playForm ?? null,
         durationText: durationText ?? null,
@@ -457,12 +480,19 @@ export async function POST(req: Request) {
       },
     })
 
-    await prisma.offerAge.createMany({
-      data: agesArr.map((ag) => ({
-        offerId: createdOffer.id,
-        ageGroup: ag as any,
-      })),
-    })
+    // Nur ages speichern wenn vorhanden (nicht bei DAMEN/FREIZEITLIGA)
+    if (agesArr.length > 0) {
+      // Filter nur U6-U19 für OfferAge (HERREN, Ü32 etc. nicht unterstützt in AgeGroup enum)
+      const validOfferAges = agesArr.filter(ag => ag.startsWith('U'))
+      if (validOfferAges.length > 0) {
+        await prisma.offerAge.createMany({
+          data: validOfferAges.map((ag) => ({
+            offerId: createdOffer.id,
+            ageGroup: ag as any,
+          })),
+        })
+      }
+    }
 
     const full = await prisma.gameOffer.findUnique({
       where: { id: createdOffer.id },

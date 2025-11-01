@@ -24,6 +24,19 @@ enum AgeGroup {
   U19
 }
 
+enum AgeCategory {
+  JUNIOREN
+  JUNIORINNEN
+  HERREN
+  DAMEN
+  FREIZEITLIGA
+}
+
+enum MatchType {
+  TESTSPIEL
+  LEISTUNGSVERGLEICH
+}
+
 enum Strength {
   SEHR_SCHWACH
   SCHWACH
@@ -186,10 +199,11 @@ model Venue {
 }
 
 model Team {
-  id            String   @id @default(cuid())
+  id            String        @id @default(cuid())
   clubId        String
   contactUserId String
   ageGroup      AgeGroup
+  ageCategory   AgeCategory?
   level         Level
   lat           Float?
   lng           Float?
@@ -227,6 +241,11 @@ model GameOffer {
   strength        Strength? // Spielstärke
   playForm        PlayForm? // Spielform
   durationText    String? // Spielzeit (Freitext)
+
+  // NEU: Zwei-stufige Altersklassen + Spielart
+  ageCategory      AgeCategory?
+  matchType        MatchType      @default(TESTSPIEL)
+  numberOfOpponents Int?
 
   homeAway  HomeAway    @default(FLEX)
   fieldType FieldType   @default(FIELD)
