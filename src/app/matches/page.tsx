@@ -244,14 +244,17 @@ export default function MatchesPage() {
 
     try {
       const res = await fetch(`/api/messaging/find-conversation?userId=${encodeURIComponent(ownerId)}`)
-      const data = await res.json()
+      
+      if (!res.ok) {
+        throw new Error('Konversation konnte nicht gefunden werden')
+      }
+      
+      const data = await res.json().catch(() => ({}))
 
-      if (res.ok) {
-        if (data.exists) {
-          router.push(`/chat/${data.conversationId}`)
-        } else {
-          router.push(`/chat?newConversation=${ownerId}`)
-        }
+      if (data.exists) {
+        router.push(`/chat/${data.conversationId}`)
+      } else {
+        router.push(`/chat?newConversation=${ownerId}`)
       }
     } catch (e: any) {
       console.error('Contact trainer failed:', e)
@@ -364,8 +367,11 @@ export default function MatchesPage() {
       setError(null)
       const url = '/api/offer' + (query ? `?${query}` : '')
       const res = await fetch(url, { cache: 'no-store' })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`)
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data?.error || `HTTP ${res.status}`)
+      }
+      const data = await res.json().catch(() => ({ items: [] }))
       setItems(Array.isArray(data.items) ? data.items : [])
     } catch (e: any) {
       setError(e?.message ?? 'Fehler beim Laden')
