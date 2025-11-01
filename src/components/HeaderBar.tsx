@@ -44,7 +44,10 @@ export default function HeaderBar() {
   // Fetch Badge Counts
   useEffect(() => {
     let alive = true
-    ;(async () => {
+    
+    async function fetchBadgeCounts() {
+      if (!alive) return
+      
       try {
         const [clubRes, notifsRes, msgsRes] = await Promise.all([
           fetch('/api/profile/affiliation', { cache: 'no-store' }),
@@ -67,9 +70,21 @@ export default function HeaderBar() {
       } catch {
         // Ignorieren - Badge wird nicht angezeigt bei Fehler
       }
-    })()
+    }
+    
+    // Initial fetch
+    fetchBadgeCounts()
+    
+    // Polling alle 15 Sekunden
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchBadgeCounts()
+      }
+    }, 15000)
+    
     return () => {
       alive = false
+      clearInterval(interval)
     }
   }, [])
 

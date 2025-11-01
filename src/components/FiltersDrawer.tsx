@@ -15,7 +15,7 @@ export type Strength =
 export type PlayForm =
   | 'FUNINO' | 'FUSSBALL_4' | 'FUSSBALL_5' | 'FUSSBALL_7' | 'NEUN_GEGEN_NEUN' | 'ELF_GEGEN_ELF'
 
-export const ALL_AGES = Array.from({ length: 14 }, (_, i) => `U${i + 6}`) as const
+export const ALL_AGES = Array.from({ length: 14 }, (_, i) => `U${i + 6}`)
 export const STRENGTH_ORDER: Strength[] = [
   'SEHR_SCHWACH','SCHWACH','NORMAL','STARK','SEHR_STARK',
   'GRUPPE','KREISKLASSE','KREISLIGA','BEZIRKSOBERLIGA','FOERDERLIGA','NLZ_LIGA',
