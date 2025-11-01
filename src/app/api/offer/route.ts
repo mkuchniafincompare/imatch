@@ -430,19 +430,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'matchType ungültig' }, { status: 400 })
     }
 
-    // 6) Erlaubte Altersklassen (U6–U19 + HERREN, Ü32, etc.)
+    // 6) Erlaubte Altersklassen (U6–U19 + HERREN, UE32, DAMEN, FREIZEITLIGA)
     const allowedAges = new Set([
       'U6','U7','U8','U9','U10','U11','U12','U13','U14','U15','U16','U17','U18','U19',
-      'HERREN', 'Ü32', 'Ü40', 'Ü50', 'Ü60'
+      'HERREN', 'UE32', 'UE40', 'UE50', 'UE60', 'DAMEN', 'FREIZEITLIGA'
     ])
     const agesArr: string[] = Array.isArray(ages) ? ages : []
     
-    // Ages sind optional wenn keine Sub-Ages verfügbar (DAMEN, FREIZEITLIGA)
-    if (agesArr.length > 0) {
-      for (const ag of agesArr) {
-        if (!allowedAges.has(String(ag))) {
-          return NextResponse.json({ error: `Altersklasse ${ag} aktuell nicht erlaubt` }, { status: 400 })
-        }
+    // Mindestens eine Age erforderlich
+    if (agesArr.length === 0) {
+      return NextResponse.json({ error: 'Mindestens eine Altersstufe erforderlich' }, { status: 400 })
+    }
+    
+    for (const ag of agesArr) {
+      if (!allowedAges.has(String(ag))) {
+        return NextResponse.json({ error: `Altersklasse ${ag} aktuell nicht erlaubt` }, { status: 400 })
       }
     }
 
@@ -480,19 +482,13 @@ export async function POST(req: Request) {
       },
     })
 
-    // Nur ages speichern wenn vorhanden (nicht bei DAMEN/FREIZEITLIGA)
-    if (agesArr.length > 0) {
-      // Filter nur U6-U19 für OfferAge (HERREN, Ü32 etc. nicht unterstützt in AgeGroup enum)
-      const validOfferAges = agesArr.filter(ag => ag.startsWith('U'))
-      if (validOfferAges.length > 0) {
-        await prisma.offerAge.createMany({
-          data: validOfferAges.map((ag) => ({
-            offerId: createdOffer.id,
-            ageGroup: ag as any,
-          })),
-        })
-      }
-    }
+    // Alle Ages in OfferAge speichern (inkl. HERREN, UE32, DAMEN, FREIZEITLIGA)
+    await prisma.offerAge.createMany({
+      data: agesArr.map((ag) => ({
+        offerId: createdOffer.id,
+        ageGroup: ag as any,
+      })),
+    })
 
     const full = await prisma.gameOffer.findUnique({
       where: { id: createdOffer.id },

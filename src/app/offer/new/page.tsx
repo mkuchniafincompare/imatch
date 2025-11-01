@@ -17,8 +17,10 @@ type Team = {
 type AgeCategory = 'JUNIOREN' | 'JUNIORINNEN' | 'HERREN' | 'DAMEN' | 'FREIZEITLIGA'
 type JuniorenAge = 'U6'|'U7'|'U8'|'U9'|'U10'|'U11'|'U12'|'U13'|'U14'|'U15'|'U16'|'U17'|'U18'|'U19'
 type JuniorinnenAge = 'U15' | 'U17'
-type HerrenAge = 'HERREN' | 'Ü32' | 'Ü40' | 'Ü50' | 'Ü60'
-type SubAge = JuniorenAge | JuniorinnenAge | HerrenAge
+type HerrenAge = 'HERREN' | 'UE32' | 'UE40' | 'UE50' | 'UE60'
+type DamenAge = 'DAMEN'
+type FreizeitAge = 'FREIZEITLIGA'
+type SubAge = JuniorenAge | JuniorinnenAge | HerrenAge | DamenAge | FreizeitAge
 
 const AGE_CATEGORY_LABEL: Record<AgeCategory, string> = {
   JUNIOREN: 'Junioren',
@@ -30,7 +32,20 @@ const AGE_CATEGORY_LABEL: Record<AgeCategory, string> = {
 
 const JUNIOREN_AGES: JuniorenAge[] = ['U6','U7','U8','U9','U10','U11','U12','U13','U14','U15','U16','U17','U18','U19']
 const JUNIORINNEN_AGES: JuniorinnenAge[] = ['U15', 'U17']
-const HERREN_AGES: HerrenAge[] = ['HERREN', 'Ü32', 'Ü40', 'Ü50', 'Ü60']
+const HERREN_AGES: HerrenAge[] = ['HERREN', 'UE32', 'UE40', 'UE50', 'UE60']
+const DAMEN_AGES: DamenAge[] = ['DAMEN']
+const FREIZEIT_AGES: FreizeitAge[] = ['FREIZEITLIGA']
+
+// Display labels for Sub-Ages
+const SUB_AGE_LABEL: Record<string, string> = {
+  HERREN: 'Herren',
+  UE32: 'Ü32',
+  UE40: 'Ü40',
+  UE50: 'Ü50',
+  UE60: 'Ü60',
+  DAMEN: 'Damen',
+  FREIZEITLIGA: 'Freizeitliga',
+}
 
 type HomeAway = 'HOME' | 'AWAY' | 'FLEX'
 type FieldType = 'FIELD' | 'TURF' | 'HALL'
@@ -138,6 +153,8 @@ export default function NewOfferPage() {
     if (ageCategory === 'JUNIOREN') return JUNIOREN_AGES
     if (ageCategory === 'JUNIORINNEN') return JUNIORINNEN_AGES
     if (ageCategory === 'HERREN') return HERREN_AGES
+    if (ageCategory === 'DAMEN') return DAMEN_AGES
+    if (ageCategory === 'FREIZEITLIGA') return FREIZEIT_AGES
     return []
   }, [ageCategory])
 
@@ -158,8 +175,8 @@ export default function NewOfferPage() {
       if (!teamId) throw new Error('Kein Team gewählt')
       if (!ageCategory) throw new Error('Bitte Altersklasse wählen')
       
-      // Validierung: Sub-Ages nur wenn verfügbar
-      if (availableSubAges.length > 0 && selectedSubAges.length === 0) {
+      // Validierung: Sub-Ages immer erforderlich (auch für DAMEN/FREIZEITLIGA)
+      if (selectedSubAges.length === 0) {
         throw new Error('Bitte mindestens eine Altersstufe wählen')
       }
       
@@ -176,7 +193,7 @@ export default function NewOfferPage() {
         body: JSON.stringify({
           teamId,
           ageCategory,
-          ages: availableSubAges.length > 0 ? selectedSubAges : [],
+          ages: selectedSubAges,
           offerDate,
           kickoffTime: kickoffFlexible ? null : kickoffTime,
           kickoffFlexible,
@@ -257,8 +274,8 @@ export default function NewOfferPage() {
             </div>
           </div>
 
-          {/* Altersstufe (Level 2) - nur wenn verfügbar */}
-          {ageCategory && availableSubAges.length > 0 && (
+          {/* Altersstufe (Level 2) - immer anzeigen wenn Kategorie gewählt */}
+          {ageCategory && (
             <div>
               <label className="block text-xs font-medium mb-2 text-white/90">Altersstufe</label>
               <div className="flex flex-wrap gap-2">
@@ -274,7 +291,7 @@ export default function NewOfferPage() {
                         : 'bg-white/10 text-white border-white/30 hover:bg-white/20'
                     )}
                   >
-                    {age}
+                    {SUB_AGE_LABEL[age] || age}
                   </button>
                 ))}
               </div>

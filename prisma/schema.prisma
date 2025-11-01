@@ -22,6 +22,13 @@ enum AgeGroup {
   U17
   U18
   U19
+  HERREN
+  UE32
+  UE40
+  UE50
+  UE60
+  DAMEN
+  FREIZEITLIGA
 }
 
 enum AgeCategory {
