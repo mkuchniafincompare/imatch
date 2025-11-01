@@ -80,6 +80,8 @@ export async function GET() {
         strengthLabel,
         address,
         logoUrl: club?.logoUrl ?? null,
+        isReserved: !!(o as any).isReserved,
+        matchType: (o as any).matchType ?? 'TESTSPIEL',
         savedCount: o._count.savedBy,
         requestCount: o._count.requests,
       }

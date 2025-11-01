@@ -27,6 +27,7 @@ type Props = {
   isOwner?: boolean
   onEdit?: () => void
   isReserved?: boolean
+  matchType?: string
   requestCount?: number
   isSaved?: boolean
   isRequested?: boolean
@@ -36,7 +37,7 @@ export default function MatchCard({
   clubName, ageLabel, year,
   date, kickoffTime, kickoffFlexible,
   homeAway, notes, playTime, strengthLabel, address, logoUrl,
-  isOwner, onEdit, isReserved, requestCount, isSaved, isRequested,
+  isOwner, onEdit, isReserved, matchType, requestCount, isSaved, isRequested,
 }: Props) {
   const dateFmt = date
     ? new Date(date).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' })
@@ -47,19 +48,28 @@ export default function MatchCard({
 
   const normalizedCount = requestCount ?? 0
   const showRequests = normalizedCount > 0
-  const hasLabels = Boolean(isReserved) || showRequests || Boolean(isSaved) || Boolean(isRequested)
+  const hasLabels = Boolean(isReserved) || Boolean(matchType) || showRequests || Boolean(isSaved) || Boolean(isRequested)
 
   return (
     // Kein fester Hintergrund hier, damit der "Glass"-Wrapper der Seite wirkt
     <div className="relative overflow-hidden rounded-2xl px-3 py-3">
       
-      {/* Labels-Zeile: Reserviert, Gemerkt (links) und Anfragen, Angefragt (rechts) */}
+      {/* Labels-Zeile: Reserviert, Spielart, Gemerkt (links) und Anfragen, Angefragt (rechts) */}
       {hasLabels && (
         <div className="mb-2 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             {isReserved && (
               <span className="inline-block bg-amber-400 text-amber-900 text-xs font-bold px-2 py-1 rounded shadow-md">
                 Reserviert
+              </span>
+            )}
+            {matchType && (
+              <span className={`inline-block text-white text-xs font-bold px-2 py-1 rounded shadow-md ${
+                matchType === 'LEISTUNGSVERGLEICH' 
+                  ? 'bg-blue-500' 
+                  : 'bg-green-500'
+              }`}>
+                {matchType === 'LEISTUNGSVERGLEICH' ? 'Leistungsvergleich' : 'Testspiel'}
               </span>
             )}
             {isSaved && (

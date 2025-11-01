@@ -48,6 +48,7 @@ interface MatchItem {
   savedCount?: number
   requestCount?: number
   isReserved?: boolean
+  matchType?: string
 }
 
 export default function MyOffersPage() {
@@ -286,6 +287,7 @@ export default function MyOffersPage() {
                         address={offer.address}
                         logoUrl={offer.logoUrl}
                         isReserved={offer.isReserved}
+                        matchType={offer.matchType}
                         requestCount={offer.requestCount}
                       />
                     </div>
