@@ -1,7 +1,9 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import BackgroundImage from '@/components/BackgroundImage'
+import SuccessModal from '@/components/SuccessModal'
 
 type Team = {
   id: string
@@ -69,6 +71,7 @@ function mergedStrengthOptions(selectedAges: Age[]): Strength[] {
 function cls(...xs: (string | false | undefined)[]) { return xs.filter(Boolean).join(' ') }
 
 export default function NewOfferPage() {
+  const router = useRouter()
   const [teams, setTeams] = useState<Team[]>([])
   const [teamId, setTeamId] = useState('')
   const [selectedAges, setSelectedAges] = useState<Age[]>([])
@@ -84,6 +87,7 @@ export default function NewOfferPage() {
 
   const [msg, setMsg] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
 
   useEffect(() => {
     fetch('/api/team').then(r => r.json()).then(d => {
@@ -131,9 +135,8 @@ export default function NewOfferPage() {
         }),
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const created = await res.json()
-      setMsg(`✓ Angebot erstellt (ID: ${created.id})`)
-      setNotes('')
+      await res.json()
+      setShowSuccessModal(true)
     } catch (err: any) {
       setMsg(`✗ Fehler: ${err?.message ?? 'unbekannt'}`)
     } finally {
@@ -332,17 +335,21 @@ export default function NewOfferPage() {
           </button>
 
           {msg && (
-            <div className={cls(
-              'text-sm px-3 py-2 rounded-lg border',
-              msg.startsWith('✓') 
-                ? 'bg-green-500/20 border-green-400/60 text-green-50'
-                : 'bg-red-500/20 border-red-400/60 text-red-50'
-            )}>
+            <div className="text-sm px-3 py-2 rounded-lg border bg-red-500/20 border-red-400/60 text-red-50">
               {msg}
             </div>
           )}
         </form>
       </div>
+
+      <SuccessModal
+        open={showSuccessModal}
+        onClose={() => {
+          setShowSuccessModal(false)
+          router.push('/my-offers')
+        }}
+        message="Spielangebot erfolgreich angelegt"
+      />
     </main>
   )
 }
