@@ -214,7 +214,15 @@ export async function GET(req: Request) {
     const missingSaved = Array.from(savedIds).filter(id => !existingIds.has(id))
     if (missingSaved.length > 0) {
       const extra = await prisma.gameOffer.findMany({
-        where: { id: { in: missingSaved } },
+        where: { 
+          id: { in: missingSaved },
+          // Also exclude confirmed (ACCEPTED) saved offers
+          requests: {
+            none: {
+              status: 'ACCEPTED',
+            },
+          },
+        },
         include: { team: { include: { club: true } }, ages: true },
       })
       // prepend saved extras, so they appear first before sorting fallback
