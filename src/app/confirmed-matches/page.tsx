@@ -108,10 +108,10 @@ export default function ConfirmedMatchesPage() {
   }
 
   return (
-    <main className="relative min-h-screen">
+    <main className="relative min-h-screen pt-12">
       <BackgroundImage src="/back2.jpg" />
       
-      <div className="relative z-10 max-w-4xl mx-auto px-4 py-6">
+      <div className="relative z-10 max-w-4xl mx-auto px-4 py-6 pb-20">
         {/* Header */}
         <h1 className="text-2xl font-bold text-white flex items-center gap-2 mb-6">
           <span>✅</span>
