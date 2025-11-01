@@ -7,11 +7,14 @@ function tokenize(q: string) {
 
 function buildWhere(tokens: string[]) {
   if (tokens.length === 0) return {} as any
+  
+  // Each token must match in at least one field (name or city)
+  // Case-insensitive fuzzy search
   return {
     AND: tokens.map((t) => ({
       OR: [
-        { name: { contains: t } },
-        { city: { contains: t } },
+        { name: { contains: t, mode: 'insensitive' } },
+        { city: { contains: t, mode: 'insensitive' } },
       ],
     })),
   }
@@ -21,6 +24,11 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url)
     const q = (searchParams.get('q') || '').trim()
+
+    if (!q) {
+      return NextResponse.json({ query: q, count: 0, items: [] })
+    }
+
     const tokens = tokenize(q)
     const where = buildWhere(tokens)
 
@@ -35,7 +43,7 @@ export async function GET(req: Request) {
         _count: { select: { teams: true, venues: true } },
       },
       orderBy: [{ name: 'asc' }],
-      take: 10,
+      take: 20,
     })
 
     const items = clubs.map((c) => ({
