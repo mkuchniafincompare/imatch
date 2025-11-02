@@ -26,6 +26,7 @@ export async function GET(req: Request) {
     }
 
     const defaults = {
+      ageCategory: team.ageCategory ?? null,
       ageGroup: team.ageGroup ?? null,
       preferredForm: team.preferredForm ?? null,
       city: team.club?.city ?? null,

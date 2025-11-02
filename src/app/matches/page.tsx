@@ -309,6 +309,7 @@ export default function MatchesPage() {
 
   // Full filters (Drawer)
   const [filters, setFilters] = useState<FiltersState>({
+    ageCategory: null,
     ages: [],
     strengthMin: null,
     strengthMax: null,
@@ -344,6 +345,7 @@ export default function MatchesPage() {
           return
         }
         const d = data.defaults as {
+          ageCategory?: string | null
           ageGroup?: string | null
           preferredForm?: string | null
           city?: string | null
@@ -351,6 +353,7 @@ export default function MatchesPage() {
         }
         const next: FiltersState = {
           ...filters,
+          ageCategory: d.ageCategory as any || null,
           ages: d.ageGroup ? [d.ageGroup] : [],
           playForms: d.preferredForm ? [d.preferredForm as any] : [],
           city: d.city || null,
@@ -467,6 +470,7 @@ export default function MatchesPage() {
   function resetAll() {
     setHomeAway(null)
     setFilters({
+      ageCategory: null,
       ages: [],
       strengthMin: null,
       strengthMax: null,

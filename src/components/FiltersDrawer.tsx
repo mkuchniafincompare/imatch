@@ -15,7 +15,40 @@ export type Strength =
 export type PlayForm =
   | 'FUNINO' | 'FUSSBALL_4' | 'FUSSBALL_5' | 'FUSSBALL_7' | 'NEUN_GEGEN_NEUN' | 'ELF_GEGEN_ELF'
 
-export const ALL_AGES = Array.from({ length: 14 }, (_, i) => `U${i + 6}`)
+// Zwei-stufige Altersklassen
+export type AgeCategory = 'JUNIOREN' | 'JUNIORINNEN' | 'HERREN' | 'DAMEN' | 'FREIZEITLIGA' | null
+type JuniorenAge = 'U6'|'U7'|'U8'|'U9'|'U10'|'U11'|'U12'|'U13'|'U14'|'U15'|'U16'|'U17'|'U18'|'U19'
+type JuniorinnenAge = 'U15' | 'U17'
+type HerrenAge = 'HERREN' | 'UE32' | 'UE40' | 'UE50' | 'UE60'
+type DamenAge = 'DAMEN'
+type FreizeitAge = 'FREIZEITLIGA'
+
+export const AGE_CATEGORY_LABEL: Record<Exclude<AgeCategory, null>, string> = {
+  JUNIOREN: 'Junioren',
+  JUNIORINNEN: 'Juniorinnen',
+  HERREN: 'Herren',
+  DAMEN: 'Damen',
+  FREIZEITLIGA: 'Freizeitliga',
+}
+
+export const JUNIOREN_AGES: JuniorenAge[] = ['U6','U7','U8','U9','U10','U11','U12','U13','U14','U15','U16','U17','U18','U19']
+export const JUNIORINNEN_AGES: JuniorinnenAge[] = ['U15', 'U17']
+export const HERREN_AGES: HerrenAge[] = ['HERREN', 'UE32', 'UE40', 'UE50', 'UE60']
+export const DAMEN_AGES: DamenAge[] = ['DAMEN']
+export const FREIZEIT_AGES: FreizeitAge[] = ['FREIZEITLIGA']
+
+export const SUB_AGE_LABEL: Record<string, string> = {
+  HERREN: 'Herren',
+  UE32: 'Ü32',
+  UE40: 'Ü40',
+  UE50: 'Ü50',
+  UE60: 'Ü60',
+  DAMEN: 'Damen',
+  FREIZEITLIGA: 'Freizeitliga',
+}
+
+export const AGE_CATEGORIES: Exclude<AgeCategory, null>[] = ['JUNIOREN', 'JUNIORINNEN', 'HERREN', 'DAMEN', 'FREIZEITLIGA']
+
 export const STRENGTH_ORDER: Strength[] = [
   'SEHR_SCHWACH','SCHWACH','NORMAL','STARK','SEHR_STARK',
   'GRUPPE','KREISKLASSE','KREISLIGA','BEZIRKSOBERLIGA','FOERDERLIGA','NLZ_LIGA',
@@ -26,6 +59,7 @@ export const PLAY_FORMS: PlayForm[] = [
 ]
 
 export type FiltersState = {
+  ageCategory?: AgeCategory
   ages: string[]
   strengthMin?: Strength | null
   strengthMax?: Strength | null
@@ -75,6 +109,7 @@ export default function FiltersDrawer({
   onApply,
   onReset,
 }: FiltersDrawerProps) {
+  const [ageCategory, setAgeCategory] = React.useState<AgeCategory>(initial.ageCategory ?? null)
   const [ages, setAges] = React.useState<string[]>(initial.ages ?? [])
   const [homeAway, setHomeAway] = React.useState<HomeAway>(initial.homeAway ?? null)
   const [strengthMin, setStrengthMin] = React.useState<Strength | null>(initial.strengthMin ?? null)
@@ -90,6 +125,7 @@ export default function FiltersDrawer({
 
   React.useEffect(() => {
     if (!isOpen) return
+    setAgeCategory(initial.ageCategory ?? null)
     setAges(initial.ages ?? [])
     setHomeAway(initial.homeAway ?? null)
     setStrengthMin(initial.strengthMin ?? null)
@@ -104,6 +140,19 @@ export default function FiltersDrawer({
     setRadiusKm(initial.radiusKm ?? null)
   }, [isOpen]) // absichtlich nur auf Open reagieren
 
+  // Verfügbare Sub-Ages basierend auf gewählter Kategorie
+  const availableSubAges = (): string[] => {
+    if (!ageCategory) return []
+    switch (ageCategory) {
+      case 'JUNIOREN': return JUNIOREN_AGES
+      case 'JUNIORINNEN': return JUNIORINNEN_AGES
+      case 'HERREN': return HERREN_AGES
+      case 'DAMEN': return DAMEN_AGES
+      case 'FREIZEITLIGA': return FREIZEIT_AGES
+      default: return []
+    }
+  }
+
   function toggleAge(a: string) {
     setAges(prev => (prev.includes(a) ? prev.filter(x => x !== a) : [...prev, a]))
   }
@@ -112,6 +161,7 @@ export default function FiltersDrawer({
   }
   function apply() {
     onApply({
+      ageCategory,
       ages,
       strengthMin,
       strengthMax,
@@ -129,6 +179,7 @@ export default function FiltersDrawer({
   }
   function reset() {
     onReset?.()
+    setAgeCategory(null)
     setAges([])
     setHomeAway(null)
     setStrengthMin(null)
@@ -165,14 +216,31 @@ export default function FiltersDrawer({
           </div>
         </Section>
 
-        <Section title="Altersklassen">
-          <div className="flex gap-1.5 flex-wrap">
-            {ALL_AGES.map((a) => (
-              <FilterChip key={a} active={ages.includes(a)} onClick={() => toggleAge(a)}>
-                {a}
+        <Section title="Altersgruppe">
+          <div className="flex gap-2 flex-wrap mb-3">
+            {AGE_CATEGORIES.map((cat) => (
+              <FilterChip 
+                key={cat} 
+                active={ageCategory === cat} 
+                onClick={() => setAgeCategory(ageCategory === cat ? null : cat)}
+              >
+                {AGE_CATEGORY_LABEL[cat]}
               </FilterChip>
             ))}
           </div>
+          
+          {ageCategory && (
+            <>
+              <h4 className="text-xs font-medium text-white/60 mb-2 mt-4">Altersstufe</h4>
+              <div className="flex gap-1.5 flex-wrap">
+                {availableSubAges().map((a) => (
+                  <FilterChip key={a} active={ages.includes(a)} onClick={() => toggleAge(a)}>
+                    {SUB_AGE_LABEL[a] || a}
+                  </FilterChip>
+                ))}
+              </div>
+            </>
+          )}
         </Section>
 
         <Section title="Spielstärke (Spanne)">
