@@ -24,16 +24,11 @@ export async function GET() {
     const userId = await requireAuth()
 
     // Find all offers where the team's contactUserId is the current user
-    // Exclude offers that have accepted requests (those are shown in "Vereinbart")
-    const offers = await prisma.gameOffer.findMany({
+    // We load all requests to filter based on matchType and numberOfOpponents
+    const allOffers = await prisma.gameOffer.findMany({
       where: {
         team: {
           contactUserId: userId,
-        },
-        requests: {
-          none: {
-            status: 'ACCEPTED',
-          },
         },
       },
       include: {
@@ -43,6 +38,11 @@ export async function GET() {
           },
         },
         ages: true,
+        requests: {
+          where: {
+            status: 'ACCEPTED',
+          },
+        },
         _count: {
           select: {
             savedBy: true,
@@ -55,6 +55,29 @@ export async function GET() {
         },
       },
       orderBy: [{ offerDate: 'asc' }, { createdAt: 'asc' }],
+    })
+
+    // Filter based on matchType:
+    // - TESTSPIEL: Hide if any request is accepted
+    // - LEISTUNGSVERGLEICH: Hide only if acceptedCount >= numberOfOpponents
+    const offers = allOffers.filter((offer) => {
+      const acceptedCount = offer.requests.length
+      
+      if (acceptedCount === 0) {
+        // No accepted requests, always show
+        return true
+      }
+
+      const matchType = (offer as any).matchType ?? 'TESTSPIEL'
+      
+      if (matchType === 'TESTSPIEL') {
+        // Testspiel: Hide if any accepted request exists
+        return false
+      } else {
+        // Leistungsvergleich: Hide only if max opponents reached
+        const numberOfOpponents = (offer as any).numberOfOpponents ?? 1
+        return acceptedCount < numberOfOpponents
+      }
     })
 
     const items = offers.map(o => {
