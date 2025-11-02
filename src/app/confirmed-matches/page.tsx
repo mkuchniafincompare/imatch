@@ -27,6 +27,8 @@ interface MatchItem {
   opponentLogoUrl?: string | null
   opponentTrainerId?: string | null
   isOwner?: boolean
+  matchType?: string
+  numberOfOpponents?: number
 }
 
 export default function ConfirmedMatchesPage() {
@@ -171,6 +173,8 @@ export default function ConfirmedMatchesPage() {
                   address={offer.address}
                   pendingRequestCount={offer.pendingRequestCount}
                   isOwner={offer.isOwner}
+                  matchType={offer.matchType}
+                  numberOfOpponents={offer.numberOfOpponents}
                   onCancel={() => handleOpenCancelModal(offer.id)}
                   onContact={() => { if (offer.opponentTrainerId) handleContactTrainer(offer.opponentTrainerId) }}
                 />

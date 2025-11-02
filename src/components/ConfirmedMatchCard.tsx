@@ -26,6 +26,8 @@ type Props = {
   address?: string | null
   pendingRequestCount?: number
   isOwner?: boolean
+  matchType?: string
+  numberOfOpponents?: number
   // Cancel function
   onCancel?: () => void
   // Contact function
@@ -38,6 +40,8 @@ export default function ConfirmedMatchCard({
   date, kickoffTime, kickoffFlexible,
   homeAway, notes, playTime, strengthLabel, address,
   pendingRequestCount, isOwner,
+  matchType,
+  numberOfOpponents,
   onCancel,
   onContact,
 }: Props) {
@@ -45,6 +49,10 @@ export default function ConfirmedMatchCard({
     ? new Date(date).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' })
     : '—'
   const timeFmt = kickoffTime || '—'
+  
+  const isLeistungsvergleich = matchType === 'LEISTUNGSVERGLEICH'
+  const matchTypeLabel = isLeistungsvergleich ? 'Leistungsvergleich' : 'Testspiel'
+  const cancelButtonLabel = isLeistungsvergleich ? 'Leistungsvergleich absagen' : 'Spiel absagen'
 
   const [imgErr1, setImgErr1] = useState(false)
   const [imgErr2, setImgErr2] = useState(false)
@@ -65,10 +73,21 @@ export default function ConfirmedMatchCard({
 
   return (
     <div className="relative overflow-hidden rounded-2xl px-4 py-4">
-      {/* VS Darstellung */}
-      <div className="flex items-center justify-between gap-4 mb-4">
+      {/* Match Type Label */}
+      <div className="mb-3">
+        <span className={`inline-flex items-center gap-1 text-xs font-semibold px-3 py-1 rounded-full ${
+          isLeistungsvergleich 
+            ? 'bg-blue-500/20 text-blue-200 border border-blue-400/30' 
+            : 'bg-green-500/20 text-green-200 border border-green-400/30'
+        }`}>
+          {isLeistungsvergleich ? '🏆' : '⚽'} {matchTypeLabel}
+        </span>
+      </div>
+
+      {/* Teams Darstellung */}
+      <div className={`flex items-center ${isLeistungsvergleich ? 'justify-start' : 'justify-between'} gap-4 mb-4`}>
         {/* Team 1 (Own Team) */}
-        <div className="flex-1 flex flex-col items-center text-center">
+        <div className={`${isLeistungsvergleich ? 'flex-shrink-0' : 'flex-1'} flex flex-col items-center text-center`}>
           <div className="w-16 h-16 rounded-md overflow-hidden border border-white/25 bg-white/15 backdrop-blur-[1px] grid place-items-center mb-2">
             {logoUrl && !imgErr1 ? (
               <Image
@@ -90,13 +109,15 @@ export default function ConfirmedMatchCard({
           </div>
         </div>
 
-        {/* VS */}
-        <div className="flex-shrink-0 px-3">
-          <div className="text-2xl font-bold text-white/90">VS</div>
-        </div>
+        {/* VS oder Separator */}
+        {!isLeistungsvergleich && (
+          <div className="flex-shrink-0 px-3">
+            <div className="text-2xl font-bold text-white/90">VS</div>
+          </div>
+        )}
 
         {/* Team 2 (Opponent) */}
-        <div className="flex-1 flex flex-col items-center text-center">
+        <div className={`${isLeistungsvergleich ? 'flex-shrink-0' : 'flex-1'} flex flex-col items-center text-center`}>
           <div className="w-16 h-16 rounded-md overflow-hidden border border-white/25 bg-white/15 backdrop-blur-[1px] grid place-items-center mb-2">
             {opponentLogoUrl && !imgErr2 ? (
               <Image
@@ -178,7 +199,7 @@ export default function ConfirmedMatchCard({
               className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm bg-red-500/20 text-red-200 hover:bg-red-500/30 font-medium transition"
             >
               <span>🚫</span>
-              <span>Spiel absagen</span>
+              <span>{cancelButtonLabel}</span>
             </button>
 
             {/* Context Menu (Burger) */}

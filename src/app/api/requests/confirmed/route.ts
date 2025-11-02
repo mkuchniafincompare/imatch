@@ -150,6 +150,8 @@ export async function GET() {
         address,
         pendingRequestCount: o._count?.requests ?? 0,
         isOwner, // true if current user is the offer creator
+        matchType: (o as any).matchType ?? 'TESTSPIEL',
+        numberOfOpponents: (o as any).numberOfOpponents ?? 1,
       }
     })
 
