@@ -192,6 +192,11 @@ export default function MatchesPage() {
   // per-offer UI state
   const [saved, setSaved] = useState<Set<string>>(new Set())
   const [requested, setRequested] = useState<Set<string>>(new Set())
+  
+  // Request Modal State
+  const [requestModalOpen, setRequestModalOpen] = useState(false)
+  const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null)
+  const [requestMessage, setRequestMessage] = useState('')
 
   function isSaved(id: string) { return saved.has(id) }
   function isRequested(id: string) { return requested.has(id) }
@@ -217,26 +222,62 @@ export default function MatchesPage() {
     }
   }
 
+  function openRequestModal(offerId: string) {
+    setSelectedOfferId(offerId)
+    setRequestMessage('')
+    setRequestModalOpen(true)
+  }
+
+  async function handleSendRequest() {
+    if (!selectedOfferId) return
+    
+    try {
+      const res = await fetch('/api/requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          offerId: selectedOfferId,
+          message: requestMessage.trim() || null,
+        }),
+      })
+
+      if (res.ok) {
+        setRequested(prev => new Set(prev).add(selectedOfferId))
+        setRequestModalOpen(false)
+        setSelectedOfferId(null)
+        setRequestMessage('')
+        // Weiterleitung zu "Meine Anfragen"
+        window.location.href = '/my-requests'
+      }
+    } catch (e: any) {
+      console.error('Request failed:', e)
+    }
+  }
+
   async function toggleRequest(offerId: string) {
     const willRequest = !requested.has(offerId)
-    // optimistic toggle
-    const next = new Set(requested)
-    if (willRequest) next.add(offerId)
-    else next.delete(offerId)
-    setRequested(next)
-    try {
-      const res = await fetch(`/api/requests`, {
-        method: willRequest ? 'POST' : 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ offerId }),
-      })
-      if (!res.ok) throw new Error('Server error')
-    } catch {
-      // revert on error
-      const revert = new Set(next)
-      if (willRequest) revert.delete(offerId)
-      else revert.add(offerId)
-      setRequested(revert)
+    
+    if (willRequest) {
+      // Neue Anfrage -> Modal öffnen
+      openRequestModal(offerId)
+    } else {
+      // Anfrage zurückziehen -> direkt löschen
+      const next = new Set(requested)
+      next.delete(offerId)
+      setRequested(next)
+      try {
+        const res = await fetch(`/api/requests`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ offerId }),
+        })
+        if (!res.ok) throw new Error('Server error')
+      } catch {
+        // revert on error
+        const revert = new Set(next)
+        revert.add(offerId)
+        setRequested(revert)
+      }
     }
   }
 
@@ -542,6 +583,43 @@ export default function MatchesPage() {
         }}
         onReset={resetAll}
       />
+
+      {/* Request Modal */}
+      {requestModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-3">Anfrage senden</h3>
+            <p className="text-gray-700 mb-4 text-sm">
+              Du kannst optional eine Nachricht an den Anbieter hinzufügen:
+            </p>
+            <textarea
+              value={requestMessage}
+              onChange={(e) => setRequestMessage(e.target.value)}
+              placeholder="Nachricht (optional)"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D04D2E] focus:border-transparent resize-none text-gray-900"
+              rows={4}
+            />
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setRequestModalOpen(false)
+                  setSelectedOfferId(null)
+                  setRequestMessage('')
+                }}
+                className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 font-medium"
+              >
+                Abbrechen
+              </button>
+              <button
+                onClick={handleSendRequest}
+                className="flex-1 px-4 py-2 bg-[#D04D2E] text-white rounded-lg hover:bg-[#B83D1E] font-medium"
+              >
+                Anfrage senden
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   )
 }
