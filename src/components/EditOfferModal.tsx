@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { STRENGTH_LABEL, getStrengthOrder } from '@/config/ageStrength'
+import { STRENGTH_LABEL, getStrengthOrder, PLAYFORMAT_LABEL, getPlayFormatOrder } from '@/config/ageStrength'
 
 type Props = {
   open: boolean
@@ -38,14 +38,10 @@ const STRENGTH_OPTIONS = getStrengthOrder().map(s => ({
   label: STRENGTH_LABEL[s]
 }))
 
-const PLAYFORM_OPTIONS = [
-  { value: 'FUNINO', label: 'Funino' },
-  { value: 'FUSSBALL_4', label: '4er' },
-  { value: 'FUSSBALL_5', label: '5er' },
-  { value: 'FUSSBALL_7', label: '7er' },
-  { value: 'NEUN_GEGEN_NEUN', label: '9er' },
-  { value: 'ELF_GEGEN_ELF', label: '11er' },
-]
+const PLAYFORM_OPTIONS = getPlayFormatOrder().map(p => ({
+  value: p,
+  label: PLAYFORMAT_LABEL[p]
+}))
 
 const HOMEAWAY_OPTIONS = [
   { value: 'HOME', label: 'Heim' },

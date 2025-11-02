@@ -7,25 +7,24 @@ import {
   type AgeCategory as AgeCategoryType, 
   type Strength, 
   type SubAge,
+  type PlayFormat,
   AGE_CATEGORY_LABEL, 
   AGE_CATEGORIES,
   SUB_AGE_LABEL,
   STRENGTH_LABEL,
+  PLAYFORMAT_LABEL,
   getSubAgesByCategory,
   getAvailableStrengths,
-  getStrengthOrder
+  getStrengthOrder,
+  getAvailablePlayFormats,
+  getPlayFormatOrder
 } from '@/config/ageStrength'
 
 // --- Types ------------------------------------------------------------
 export type HomeAway = 'HOME' | 'AWAY' | 'FLEX' | null
 export type AgeCategory = AgeCategoryType | null
 
-export type PlayForm =
-  | 'FUNINO' | 'FUSSBALL_4' | 'FUSSBALL_5' | 'FUSSBALL_7' | 'NEUN_GEGEN_NEUN' | 'ELF_GEGEN_ELF'
-
-export const PLAY_FORMS: PlayForm[] = [
-  'FUNINO','FUSSBALL_4','FUSSBALL_5','FUSSBALL_7','NEUN_GEGEN_NEUN','ELF_GEGEN_ELF',
-]
+export type PlayForm = PlayFormat
 
 export { type Strength } from '@/config/ageStrength'
 
@@ -114,6 +113,11 @@ export default function FiltersDrawer({
   // Verfügbare Spielstärken basierend auf ageCategory und gewählten Ages
   const availableStrengths = (): Strength[] => {
     return getAvailableStrengths(ageCategory, ages as SubAge[])
+  }
+
+  // Verfügbare Spielformen basierend auf ageCategory und gewählten Ages
+  const availablePlayForms = (): PlayFormat[] => {
+    return getAvailablePlayFormats(ageCategory, ages as SubAge[])
   }
 
   function toggleAge(a: string) {
@@ -285,14 +289,9 @@ export default function FiltersDrawer({
 
         <Section title="Spielform (Mehrfach)">
           <div className="flex gap-1.5 flex-wrap">
-            {PLAY_FORMS.map((p) => (
+            {availablePlayForms().map((p) => (
               <FilterChip key={p} active={playForms.includes(p)} onClick={() => togglePlayForm(p)}>
-                {p === 'FUNINO' ? 'Funino'
-                  : p === 'FUSSBALL_4' ? 'Fußball 4'
-                  : p === 'FUSSBALL_5' ? 'Fußball 5'
-                  : p === 'FUSSBALL_7' ? 'Fußball 7'
-                  : p === 'NEUN_GEGEN_NEUN' ? '9 vs. 9'
-                  : '11 vs. 11'}
+                {PLAYFORMAT_LABEL[p]}
               </FilterChip>
             ))}
           </div>

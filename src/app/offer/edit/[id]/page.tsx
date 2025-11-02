@@ -5,8 +5,11 @@ import { useParams, useRouter } from 'next/navigation'
 import BackgroundImage from '@/components/BackgroundImage'
 import {
   type Strength,
+  type PlayFormat,
   STRENGTH_LABEL,
-  getAvailableStrengths
+  PLAYFORMAT_LABEL,
+  getAvailableStrengths,
+  getAvailablePlayFormats
 } from '@/config/ageStrength'
 
 type Team = {
@@ -22,20 +25,9 @@ type Age = typeof ALL_AGES[number]
 
 type HomeAway = 'HOME' | 'AWAY' | 'FLEX'
 type FieldType = 'FIELD' | 'TURF' | 'HALL'
-type PlayForm = 'FUNINO' | 'FUSSBALL_4' | 'FUSSBALL_5' | 'FUSSBALL_7' | 'NEUN_GEGEN_NEUN' | 'ELF_GEGEN_ELF'
+type PlayForm = PlayFormat
 
 const FIELD_TYPE_LABEL: Record<FieldType, string> = { FIELD: 'Rasen', TURF: 'Kunstrasen', HALL: 'Halle' }
-const PLAYFORM_LABEL: Record<PlayForm, string> = {
-  FUNINO: 'Funino',
-  FUSSBALL_4: 'Fußball 4',
-  FUSSBALL_5: 'Fußball 5',
-  FUSSBALL_7: 'Fußball 7',
-  NEUN_GEGEN_NEUN: '9 vs. 9',
-  ELF_GEGEN_ELF: '11 vs. 11',
-}
-const PLAYFORM_OPTIONS: PlayForm[] = [
-  'FUNINO', 'FUSSBALL_4', 'FUSSBALL_5', 'FUSSBALL_7', 'NEUN_GEGEN_NEUN', 'ELF_GEGEN_ELF',
-]
 
 function cls(...xs: (string | false | undefined)[]) { return xs.filter(Boolean).join(' ') }
 
@@ -93,6 +85,10 @@ export default function EditOfferPage() {
 
   const strengthOptions = useMemo(() => {
     return getAvailableStrengths('JUNIOREN', selectedAges as any)
+  }, [selectedAges])
+
+  const playFormOptions = useMemo(() => {
+    return getAvailablePlayFormats('JUNIOREN', selectedAges as any)
   }, [selectedAges])
 
   function toggleAge(age: Age) {
@@ -304,8 +300,8 @@ export default function EditOfferPage() {
                 onChange={e => setPlayForm((e.target.value || '') as PlayForm | '')}
               >
                 <option value="" className="bg-gray-800 text-white">–</option>
-                {PLAYFORM_OPTIONS.map(p => (
-                  <option key={p} value={p} className="bg-gray-800 text-white">{PLAYFORM_LABEL[p]}</option>
+                {playFormOptions.map(p => (
+                  <option key={p} value={p} className="bg-gray-800 text-white">{PLAYFORMAT_LABEL[p]}</option>
                 ))}
               </select>
             </div>

@@ -69,10 +69,12 @@ enum Strength {
 }
 
 enum PlayForm {
+  FUSSBALL_3
   FUNINO
   FUSSBALL_4
   FUSSBALL_5
   FUSSBALL_7
+  FUSSBALL_9
   NEUN_GEGEN_NEUN
   ELF_GEGEN_ELF
 }

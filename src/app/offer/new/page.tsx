@@ -8,11 +8,14 @@ import {
   type AgeCategory,
   type Strength,
   type SubAge,
+  type PlayFormat,
   AGE_CATEGORY_LABEL,
   SUB_AGE_LABEL,
   STRENGTH_LABEL,
+  PLAYFORMAT_LABEL,
   getSubAgesByCategory,
-  getAvailableStrengths
+  getAvailableStrengths,
+  getAvailablePlayFormats
 } from '@/config/ageStrength'
 
 type Team = {
@@ -26,21 +29,10 @@ type Team = {
 type HomeAway = 'HOME' | 'AWAY' | 'FLEX'
 type FieldType = 'FIELD' | 'TURF' | 'HALL'
 type MatchType = 'TESTSPIEL' | 'LEISTUNGSVERGLEICH'
-type PlayForm = 'FUNINO' | 'FUSSBALL_4' | 'FUSSBALL_5' | 'FUSSBALL_7' | 'NEUN_GEGEN_NEUN' | 'ELF_GEGEN_ELF'
+type PlayForm = PlayFormat
 
 const FIELD_TYPE_LABEL: Record<FieldType, string> = { FIELD: 'Rasen', TURF: 'Kunstrasen', HALL: 'Halle' }
 const MATCH_TYPE_LABEL: Record<MatchType, string> = { TESTSPIEL: 'Testspiel', LEISTUNGSVERGLEICH: 'Leistungsvergleich' }
-const PLAYFORM_LABEL: Record<PlayForm, string> = {
-  FUNINO: 'Funino',
-  FUSSBALL_4: 'Fußball 4',
-  FUSSBALL_5: 'Fußball 5',
-  FUSSBALL_7: 'Fußball 7',
-  NEUN_GEGEN_NEUN: '9 vs. 9',
-  ELF_GEGEN_ELF: '11 vs. 11',
-}
-const PLAYFORM_OPTIONS: PlayForm[] = [
-  'FUNINO', 'FUSSBALL_4', 'FUSSBALL_5', 'FUSSBALL_7', 'NEUN_GEGEN_NEUN', 'ELF_GEGEN_ELF',
-]
 
 function cls(...xs: (string | false | undefined)[]) { return xs.filter(Boolean).join(' ') }
 
@@ -84,6 +76,11 @@ export default function NewOfferPage() {
 
   const strengthOptions = useMemo(() => 
     getAvailableStrengths(ageCategory || null, selectedSubAges), 
+    [ageCategory, selectedSubAges]
+  )
+
+  const playFormOptions = useMemo(() => 
+    getAvailablePlayFormats(ageCategory || null, selectedSubAges),
     [ageCategory, selectedSubAges]
   )
 
@@ -350,8 +347,8 @@ export default function NewOfferPage() {
                 onChange={e => setPlayForm((e.target.value || '') as PlayForm | '')}
               >
                 <option value="">–</option>
-                {PLAYFORM_OPTIONS.map(p => (
-                  <option key={p} value={p}>{PLAYFORM_LABEL[p]}</option>
+                {playFormOptions.map(p => (
+                  <option key={p} value={p}>{PLAYFORMAT_LABEL[p]}</option>
                 ))}
               </select>
             </div>

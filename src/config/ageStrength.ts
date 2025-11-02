@@ -166,3 +166,61 @@ export function getSubAgesByCategory(category: AgeCategory | null | undefined): 
 }
 
 export const AGE_CATEGORIES: AgeCategory[] = ['JUNIOREN', 'JUNIORINNEN', 'HERREN', 'DAMEN', 'FREIZEITLIGA']
+
+// ========== PLAYFORMAT CONFIGURATION ==========
+
+export type PlayFormat = 
+  | 'FUSSBALL_3' | 'FUNINO' | 'FUSSBALL_4' | 'FUSSBALL_5' 
+  | 'FUSSBALL_7' | 'FUSSBALL_9' | 'NEUN_GEGEN_NEUN' | 'ELF_GEGEN_ELF'
+
+export const PLAYFORMAT_LABEL: Record<PlayFormat, string> = {
+  FUSSBALL_3: 'Fußball 3',
+  FUNINO: 'Funino',
+  FUSSBALL_4: 'Fußball 4',
+  FUSSBALL_5: 'Fußball 5',
+  FUSSBALL_7: 'Fußball 7',
+  FUSSBALL_9: 'Fußball 9',
+  NEUN_GEGEN_NEUN: '9 vs. 9 (Kompaktfeld)',
+  ELF_GEGEN_ELF: '11 vs. 11 (Großfeld)',
+}
+
+// Junioren & Juniorinnen bis U10: Fußball 3, 4, 5, 7
+const YOUTH_U6_U10: PlayFormat[] = ['FUSSBALL_3', 'FUNINO', 'FUSSBALL_4', 'FUSSBALL_5', 'FUSSBALL_7']
+
+// U11: Fußball 3, 4, 5, 7, 9
+const YOUTH_U11: PlayFormat[] = ['FUSSBALL_3', 'FUNINO', 'FUSSBALL_4', 'FUSSBALL_5', 'FUSSBALL_7', 'FUSSBALL_9']
+
+// Ab U12: Fußball 7, 9 vs. 9, 11 vs. 11
+const YOUTH_U12_PLUS: PlayFormat[] = ['FUSSBALL_7', 'NEUN_GEGEN_NEUN', 'ELF_GEGEN_ELF']
+
+// Herren/Damen/Freizeitliga: Kleinfeld (7 vs. 7), Kompaktfeld (9 vs. 9), Großfeld (11 vs. 11)
+const SENIOR_PLAYFORMAT: PlayFormat[] = ['FUSSBALL_7', 'NEUN_GEGEN_NEUN', 'ELF_GEGEN_ELF']
+
+export function getAvailablePlayFormats(ageCategory: AgeCategory | null | undefined, subAge: SubAge | SubAge[] | null | undefined): PlayFormat[] {
+  if (!ageCategory) return []
+  
+  if (ageCategory === 'JUNIOREN' || ageCategory === 'JUNIORINNEN') {
+    const ages = Array.isArray(subAge) ? subAge : [subAge]
+    const minAge = ages.reduce((min, age) => {
+      if (!age || typeof age !== 'string') return min
+      const match = age.match(/^U(\d+)$/)
+      if (!match) return min
+      const num = parseInt(match[1], 10)
+      return num < min ? num : min
+    }, 99)
+    
+    if (minAge === 11) return YOUTH_U11
+    if (minAge < 11) return YOUTH_U6_U10
+    return YOUTH_U12_PLUS
+  }
+  
+  // Herren, Damen, Freizeitliga
+  return SENIOR_PLAYFORMAT
+}
+
+export function getPlayFormatOrder(): PlayFormat[] {
+  return [
+    'FUSSBALL_3', 'FUNINO', 'FUSSBALL_4', 'FUSSBALL_5', 
+    'FUSSBALL_7', 'FUSSBALL_9', 'NEUN_GEGEN_NEUN', 'ELF_GEGEN_ELF'
+  ]
+}
