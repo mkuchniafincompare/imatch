@@ -69,9 +69,11 @@ export default function MyOffersPage() {
   const [reserveModalOpen, setReserveModalOpen] = useState(false)
   const [reserveAction, setReserveAction] = useState<{ offerId: string; isCurrentlyReserved: boolean } | null>(null)
   
-  const [drawerView, setDrawerView] = useState<'list' | 'confirm'>('list')
+  const [drawerView, setDrawerView] = useState<'list' | 'confirm' | 'bulk-reject'>('list')
   const [respondAction, setRespondAction] = useState<{ requesterId: string; action: 'accept' | 'reject'; requesterName: string; clubName: string } | null>(null)
   const [respondMessage, setRespondMessage] = useState('')
+  const [bulkRejectMessage, setBulkRejectMessage] = useState('')
+  const [showBulkRejectPrompt, setShowBulkRejectPrompt] = useState(false)
 
   useEffect(() => {
     fetchOwnOffers()
@@ -142,22 +144,70 @@ export default function MyOffersPage() {
 
       if (res.ok) {
         const isAccept = respondAction.action === 'accept'
+        const isTestspiel = selectedOfferData?.matchType === 'TESTSPIEL'
         
         setDrawerView('list')
         setRespondAction(null)
         setRespondMessage('')
-        setRequestDrawerOpen(false)
+        
+        // Anfragen neu laden
+        const reqRes = await fetch(`/api/requests/${selectedOfferId}`)
+        const reqData = await reqRes.json()
+        setOfferRequests(reqData.requests || [])
         
         // Angebote aktualisieren
         await fetchOwnOffers()
         
-        // Bei Akzeptieren zu confirmed-matches weiterleiten
-        if (isAccept) {
+        // Bei Testspiel: Sofort zu confirmed-matches
+        if (isTestspiel && isAccept) {
+          setRequestDrawerOpen(false)
           router.push('/confirmed-matches')
+          return
+        }
+        
+        // Bei Leistungsvergleich: Prüfen ob max erreicht und noch offene Anfragen vorhanden
+        if (!isTestspiel && isAccept) {
+          const maxAccepts = selectedOfferData?.numberOfOpponents || 1
+          const acceptedCount = (reqData.requests || []).filter((r: any) => r.status === 'ACCEPTED').length
+          const pendingRequests = (reqData.requests || []).filter((r: any) => r.status === 'PENDING')
+          
+          if (acceptedCount >= maxAccepts && pendingRequests.length > 0) {
+            // Maximale Anzahl erreicht und noch offene Anfragen vorhanden
+            setShowBulkRejectPrompt(true)
+          }
+          // Drawer bleibt offen
+        } else {
+          // Bei Ablehnung: Drawer offen lassen
         }
       }
     } catch (e: any) {
       console.error('Failed to respond:', e)
+    }
+  }
+
+  async function handleBulkRejectAll() {
+    if (!selectedOfferId) return
+    
+    try {
+      const res = await fetch(`/api/requests/${selectedOfferId}/bulk-reject`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          message: bulkRejectMessage.trim() || null,
+        }),
+      })
+
+      if (res.ok) {
+        setShowBulkRejectPrompt(false)
+        setDrawerView('list')
+        setBulkRejectMessage('')
+        setRequestDrawerOpen(false)
+        
+        // Zu confirmed-matches weiterleiten
+        router.push('/confirmed-matches')
+      }
+    } catch (e: any) {
+      console.error('Failed to bulk reject:', e)
     }
   }
 
@@ -429,14 +479,48 @@ export default function MyOffersPage() {
         </div>
       )}
 
+      {/* Bulk Reject Prompt Modal */}
+      {showBulkRejectPrompt && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-3">Maximale Anzahl erreicht</h3>
+            <p className="text-gray-700 mb-6">
+              Du hast die maximale Anzahl an Gegnern akzeptiert. Möchtest du alle anderen offenen Anfragen auf "abgelehnt" setzen?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowBulkRejectPrompt(false)}
+                className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 font-medium"
+              >
+                Abbrechen
+              </button>
+              <button
+                onClick={() => {
+                  setShowBulkRejectPrompt(false)
+                  setDrawerView('bulk-reject')
+                }}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium"
+              >
+                Alle Anfragen ablehnen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Request Drawer */}
       <Drawer
         open={requestDrawerOpen}
         onClose={() => {
           setRequestDrawerOpen(false)
           setDrawerView('list')
+          setShowBulkRejectPrompt(false)
         }}
-        title={drawerView === 'list' ? 'Anfragen bearbeiten' : respondAction?.action === 'accept' ? 'Anfrage akzeptieren' : 'Anfrage ablehnen'}
+        title={
+          drawerView === 'list' ? 'Anfragen bearbeiten' : 
+          drawerView === 'bulk-reject' ? 'Alle Anfragen ablehnen' :
+          respondAction?.action === 'accept' ? 'Anfrage akzeptieren' : 'Anfrage ablehnen'
+        }
         side="right"
         className="!bg-white !text-gray-900"
       >
@@ -534,8 +618,51 @@ export default function MyOffersPage() {
               )
             })()}
           </>
+        ) : drawerView === 'bulk-reject' ? (
+          // Bulk-Reject-Ansicht
+          <div className="space-y-4">
+            <div className="bg-orange-50 p-4 rounded-xl border border-orange-200 shadow-sm">
+              <div className="text-sm font-semibold text-gray-900 mb-2">
+                📢 Massenablehnung
+              </div>
+              <div className="text-sm text-gray-700">
+                Du bist dabei, <span className="font-semibold text-red-700">alle verbleibenden offenen Anfragen abzulehnen</span>. Die Nachricht wird an alle betroffenen Vereine gesendet (InApp + E-Mail).
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Nachricht an alle abgelehnten Vereine (optional)
+              </label>
+              <textarea
+                value={bulkRejectMessage}
+                onChange={(e) => setBulkRejectMessage(e.target.value)}
+                placeholder="z.B. 'Vielen Dank für euer Interesse. Leider haben wir bereits die maximale Anzahl an Gegnern erreicht.'"
+                className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D04D2E] focus:border-[#D04D2E] resize-none text-gray-900 placeholder-gray-400"
+                rows={5}
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setDrawerView('list')
+                  setBulkRejectMessage('')
+                }}
+                className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium transition border border-gray-300"
+              >
+                Zurück
+              </button>
+              <button
+                onClick={handleBulkRejectAll}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition shadow-sm hover:shadow"
+              >
+                Alle ablehnen
+              </button>
+            </div>
+          </div>
         ) : (
-          // Bestätigungs-Ansicht
+          // Bestätigungs-Ansicht (einzelne Anfrage)
           respondAction && (
             <div className="space-y-4">
               <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
