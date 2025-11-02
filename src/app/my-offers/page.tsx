@@ -59,6 +59,7 @@ export default function MyOffersPage() {
   
   const [requestDrawerOpen, setRequestDrawerOpen] = useState(false)
   const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null)
+  const [selectedOfferData, setSelectedOfferData] = useState<{ matchType: string; numberOfOpponents: number | null } | null>(null)
   const [offerRequests, setOfferRequests] = useState<any[]>([])
   const [loadingRequests, setLoadingRequests] = useState(false)
   
@@ -92,7 +93,12 @@ export default function MyOffersPage() {
   }
 
   async function openRequestsDrawer(offerId: string) {
+    const offer = ownOffers.find(o => o.id === offerId)
     setSelectedOfferId(offerId)
+    setSelectedOfferData({
+      matchType: offer?.matchType || 'TESTSPIEL',
+      numberOfOpponents: null, // wird aus API geladen
+    })
     setRequestDrawerOpen(true)
     setDrawerView('list')
     setLoadingRequests(true)
@@ -102,6 +108,10 @@ export default function MyOffersPage() {
       if (!res.ok) throw new Error('Anfragen konnten nicht geladen werden')
       const data = await res.json()
       setOfferRequests(data.requests || [])
+      // numberOfOpponents aus Offer-Daten laden wenn verfügbar
+      if (data.offerData?.numberOfOpponents) {
+        setSelectedOfferData(prev => prev ? { ...prev, numberOfOpponents: data.offerData.numberOfOpponents } : null)
+      }
     } catch (e: any) {
       console.error('Failed to load requests:', e)
       setOfferRequests([])
@@ -426,87 +436,123 @@ export default function MyOffersPage() {
           setRequestDrawerOpen(false)
           setDrawerView('list')
         }}
-        title={drawerView === 'list' ? 'Anfragen für dieses Angebot' : respondAction?.action === 'accept' ? 'Anfrage akzeptieren' : 'Anfrage ablehnen'}
+        title={drawerView === 'list' ? 'Anfragen bearbeiten' : respondAction?.action === 'accept' ? 'Anfrage akzeptieren' : 'Anfrage ablehnen'}
         side="right"
       >
         {drawerView === 'list' ? (
           // Liste der Anfragen
           <>
-            {loadingRequests ? (
-              <div className="text-sm text-gray-800">Lade Anfragen...</div>
-            ) : offerRequests.length === 0 ? (
-              <div className="text-sm text-gray-800">Keine Anfragen vorhanden.</div>
-            ) : (
-              <div className="space-y-4">
-                {offerRequests.map((req) => (
-                  <div key={req.requesterId} className="p-4 bg-white/50 backdrop-blur-sm rounded-xl border border-white/60 shadow-sm">
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <div className="font-semibold text-gray-900">{req.requesterName}</div>
-                        <div className="text-sm text-gray-600">{req.clubName}</div>
-                        {req.teamAgeGroup && (
-                          <div className="text-xs text-gray-500">{req.teamAgeGroup}</div>
-                        )}
+            {(() => {
+              const isTestspiel = selectedOfferData?.matchType === 'TESTSPIEL'
+              const maxAccepts = isTestspiel ? 1 : (selectedOfferData?.numberOfOpponents || 1)
+              const acceptedCount = offerRequests.filter(r => r.status === 'ACCEPTED').length
+              const canAcceptMore = acceptedCount < maxAccepts
+              
+              return (
+                <>
+                  {/* Zähler bei Leistungsvergleich */}
+                  {!isTestspiel && selectedOfferData?.numberOfOpponents && (
+                    <div className="mb-4 p-4 glass-card rounded-xl border-2 border-[#D04D2E]/30">
+                      <div className="text-sm font-semibold text-white/90 mb-1">
+                        Leistungsvergleich
                       </div>
-                      <div className={`text-xs px-2 py-1 rounded ${
-                        req.status === 'ACCEPTED' ? 'bg-green-100 text-green-800' :
-                        req.status === 'REJECTED' ? 'bg-red-100 text-red-800' :
-                        'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {req.status === 'ACCEPTED' ? 'Akzeptiert' :
-                         req.status === 'REJECTED' ? 'Abgelehnt' :
-                         'Ausstehend'}
+                      <div className="text-lg font-bold text-white">
+                        Bereits akzeptiert: <span className="text-[#D04D2E]">{acceptedCount}</span> / {maxAccepts}
                       </div>
                     </div>
-                    
-                    {req.message && (
-                      <div className="text-sm text-gray-700 mb-3 p-3 bg-white/60 backdrop-blur-sm rounded-lg border border-white/60">
-                        {req.message}
-                      </div>
-                    )}
+                  )}
 
-                    {req.status === 'PENDING' && (
-                      <div className="flex gap-2 mt-3">
-                        <button
-                          onClick={() => openRespondConfirm(req.requesterId, 'accept', req.requesterName, req.clubName)}
-                          className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium"
-                        >
-                          Akzeptieren
-                        </button>
-                        <button
-                          onClick={() => openRespondConfirm(req.requesterId, 'reject', req.requesterName, req.clubName)}
-                          className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium"
-                        >
-                          Ablehnen
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
+                  {loadingRequests ? (
+                    <div className="text-sm text-white/80">Lade Anfragen...</div>
+                  ) : offerRequests.length === 0 ? (
+                    <div className="glass-card p-6 rounded-xl text-center">
+                      <div className="text-white/90">Keine Anfragen vorhanden.</div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {offerRequests.map((req) => {
+                        const isAccepted = req.status === 'ACCEPTED'
+                        const isRejected = req.status === 'REJECTED'
+                        const isPending = req.status === 'PENDING'
+                        const canAcceptThis = isPending && canAcceptMore
+                        
+                        return (
+                          <div key={req.requesterId} className="glass-card p-4 rounded-xl border border-white/30">
+                            <div className="flex items-start justify-between mb-3">
+                              <div>
+                                <div className="font-semibold text-white">{req.requesterName}</div>
+                                <div className="text-sm text-white/70">{req.clubName}</div>
+                                {req.teamAgeGroup && (
+                                  <div className="text-xs text-white/60">{req.teamAgeGroup}</div>
+                                )}
+                              </div>
+                              <div className={`text-xs px-2 py-1 rounded font-medium ${
+                                isAccepted ? 'bg-green-500/90 text-white' :
+                                isRejected ? 'bg-red-500/90 text-white' :
+                                'bg-yellow-500/90 text-white'
+                              }`}>
+                                {isAccepted ? 'Akzeptiert' : isRejected ? 'Abgelehnt' : 'Ausstehend'}
+                              </div>
+                            </div>
+                            
+                            {req.message && (
+                              <div className="text-sm text-white/90 mb-3 p-3 bg-white/10 backdrop-blur-sm rounded-lg border border-white/20">
+                                {req.message}
+                              </div>
+                            )}
+
+                            {isPending && (
+                              <div className="flex gap-2 mt-3">
+                                <button
+                                  onClick={() => openRespondConfirm(req.requesterId, 'accept', req.requesterName, req.clubName)}
+                                  disabled={!canAcceptThis}
+                                  className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition ${
+                                    canAcceptThis
+                                      ? 'bg-green-600 text-white hover:bg-green-700'
+                                      : 'bg-gray-400/50 text-gray-300 cursor-not-allowed'
+                                  }`}
+                                  title={!canAcceptThis ? 'Maximale Anzahl bereits akzeptiert' : ''}
+                                >
+                                  Akzeptieren
+                                </button>
+                                <button
+                                  onClick={() => openRespondConfirm(req.requesterId, 'reject', req.requesterName, req.clubName)}
+                                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium transition"
+                                >
+                                  Ablehnen
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </>
+              )
+            })()}
           </>
         ) : (
           // Bestätigungs-Ansicht
           respondAction && (
             <div className="space-y-4">
-              <div className="p-4 bg-white/50 backdrop-blur-sm rounded-xl border border-white/60 shadow-sm">
-                <div className="font-semibold text-gray-900 mb-1">{respondAction.requesterName}</div>
-                <div className="text-sm text-gray-600 mb-2">{respondAction.clubName}</div>
-                <div className="text-sm text-gray-700">
+              <div className="glass-card p-4 rounded-xl border border-white/30">
+                <div className="font-semibold text-white mb-1">{respondAction.requesterName}</div>
+                <div className="text-sm text-white/70 mb-2">{respondAction.clubName}</div>
+                <div className="text-sm text-white/90">
                   Du bist dabei, diese Anfrage zu {respondAction.action === 'accept' ? 'akzeptieren' : 'ablehnen'}.
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-white/90 mb-2">
                   Nachricht (optional)
                 </label>
                 <textarea
                   value={respondMessage}
                   onChange={(e) => setRespondMessage(e.target.value)}
                   placeholder="Nachricht hinzufügen..."
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D04D2E] focus:border-transparent resize-none text-gray-900"
+                  className="w-full px-4 py-3 glass-card border border-white/30 rounded-lg focus:ring-2 focus:ring-[#D04D2E] focus:border-[#D04D2E] resize-none text-white placeholder-white/50"
                   rows={4}
                 />
               </div>
@@ -514,13 +560,13 @@ export default function MyOffersPage() {
               <div className="flex gap-3">
                 <button
                   onClick={handleBackToList}
-                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 font-medium"
+                  className="flex-1 px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 font-medium transition backdrop-blur-sm border border-white/30"
                 >
                   Zurück
                 </button>
                 <button
                   onClick={handleRespondToRequest}
-                  className={`flex-1 px-4 py-2 text-white rounded-lg font-medium ${
+                  className={`flex-1 px-4 py-2 text-white rounded-lg font-medium transition ${
                     respondAction.action === 'accept'
                       ? 'bg-green-600 hover:bg-green-700'
                       : 'bg-red-600 hover:bg-red-700'

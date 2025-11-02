@@ -20,6 +20,7 @@ export async function GET(
       where: { id: offerId },
       select: {
         id: true,
+        numberOfOpponents: true,
         team: { select: { contactUserId: true } },
       },
     })
@@ -32,11 +33,10 @@ export async function GET(
       return NextResponse.json({ error: 'Keine Berechtigung' }, { status: 403 })
     }
 
-    // Get only PENDING requests for this offer (for managing active requests)
+    // Get all requests for this offer (PENDING, ACCEPTED, REJECTED)
     const requests = await prisma.offerRequest.findMany({
       where: { 
         offerId,
-        status: 'PENDING',
       },
       include: {
         requesterUser: {
@@ -77,6 +77,10 @@ export async function GET(
     return NextResponse.json({
       requests: enrichedRequests,
       count: enrichedRequests.length,
+      offerData: {
+        matchType: (offer as any).matchType || 'TESTSPIEL',
+        numberOfOpponents: offer.numberOfOpponents,
+      }
     })
   } catch (e: any) {
     return NextResponse.json({ error: e?.message ?? 'Serverfehler' }, { status: 500 })
