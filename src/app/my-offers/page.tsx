@@ -438,6 +438,7 @@ export default function MyOffersPage() {
         }}
         title={drawerView === 'list' ? 'Anfragen bearbeiten' : respondAction?.action === 'accept' ? 'Anfrage akzeptieren' : 'Anfrage ablehnen'}
         side="right"
+        className="!bg-white !text-gray-900"
       >
         {drawerView === 'list' ? (
           // Liste der Anfragen
@@ -452,21 +453,21 @@ export default function MyOffersPage() {
                 <>
                   {/* Zähler bei Leistungsvergleich */}
                   {!isTestspiel && selectedOfferData?.numberOfOpponents && (
-                    <div className="mb-4 p-4 glass-card rounded-xl border-2 border-[#D04D2E]/30">
-                      <div className="text-sm font-semibold text-white/90 mb-1">
+                    <div className="mb-4 p-4 bg-gradient-to-br from-orange-50 to-red-50 rounded-xl border-2 border-[#D04D2E]/30 shadow-sm">
+                      <div className="text-sm font-semibold text-gray-700 mb-1">
                         Leistungsvergleich
                       </div>
-                      <div className="text-lg font-bold text-white">
+                      <div className="text-lg font-bold text-gray-900">
                         Bereits akzeptiert: <span className="text-[#D04D2E]">{acceptedCount}</span> / {maxAccepts}
                       </div>
                     </div>
                   )}
 
                   {loadingRequests ? (
-                    <div className="text-sm text-white/80">Lade Anfragen...</div>
+                    <div className="text-sm text-gray-600">Lade Anfragen...</div>
                   ) : offerRequests.length === 0 ? (
-                    <div className="glass-card p-6 rounded-xl text-center">
-                      <div className="text-white/90">Keine Anfragen vorhanden.</div>
+                    <div className="bg-gray-50 p-6 rounded-xl border border-gray-200 text-center">
+                      <div className="text-gray-600">Keine Anfragen vorhanden.</div>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -477,26 +478,27 @@ export default function MyOffersPage() {
                         const canAcceptThis = isPending && canAcceptMore
                         
                         return (
-                          <div key={req.requesterId} className="glass-card p-4 rounded-xl border border-white/30">
+                          <div key={req.requesterId} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
                             <div className="flex items-start justify-between mb-3">
                               <div>
-                                <div className="font-semibold text-white">{req.requesterName}</div>
-                                <div className="text-sm text-white/70">{req.clubName}</div>
+                                <div className="font-semibold text-gray-900">{req.requesterName}</div>
+                                <div className="text-sm text-gray-600">{req.clubName}</div>
                                 {req.teamAgeGroup && (
-                                  <div className="text-xs text-white/60">{req.teamAgeGroup}</div>
+                                  <div className="text-xs text-gray-500">{req.teamAgeGroup}</div>
                                 )}
                               </div>
-                              <div className={`text-xs px-2 py-1 rounded font-medium ${
-                                isAccepted ? 'bg-green-500/90 text-white' :
-                                isRejected ? 'bg-red-500/90 text-white' :
-                                'bg-yellow-500/90 text-white'
+                              <div className={`text-xs px-3 py-1 rounded-full font-medium ${
+                                isAccepted ? 'bg-green-100 text-green-800' :
+                                isRejected ? 'bg-red-100 text-red-800' :
+                                'bg-yellow-100 text-yellow-800'
                               }`}>
                                 {isAccepted ? 'Akzeptiert' : isRejected ? 'Abgelehnt' : 'Ausstehend'}
                               </div>
                             </div>
                             
                             {req.message && (
-                              <div className="text-sm text-white/90 mb-3 p-3 bg-white/10 backdrop-blur-sm rounded-lg border border-white/20">
+                              <div className="text-sm text-gray-700 mb-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                                <div className="text-xs text-blue-600 font-medium mb-1">Nachricht:</div>
                                 {req.message}
                               </div>
                             )}
@@ -506,10 +508,10 @@ export default function MyOffersPage() {
                                 <button
                                   onClick={() => openRespondConfirm(req.requesterId, 'accept', req.requesterName, req.clubName)}
                                   disabled={!canAcceptThis}
-                                  className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition ${
+                                  className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm ${
                                     canAcceptThis
-                                      ? 'bg-green-600 text-white hover:bg-green-700'
-                                      : 'bg-gray-400/50 text-gray-300 cursor-not-allowed'
+                                      ? 'bg-green-600 text-white hover:bg-green-700 hover:shadow'
+                                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                                   }`}
                                   title={!canAcceptThis ? 'Maximale Anzahl bereits akzeptiert' : ''}
                                 >
@@ -517,7 +519,7 @@ export default function MyOffersPage() {
                                 </button>
                                 <button
                                   onClick={() => openRespondConfirm(req.requesterId, 'reject', req.requesterName, req.clubName)}
-                                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium transition"
+                                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium transition shadow-sm hover:shadow"
                                 >
                                   Ablehnen
                                 </button>
@@ -536,23 +538,23 @@ export default function MyOffersPage() {
           // Bestätigungs-Ansicht
           respondAction && (
             <div className="space-y-4">
-              <div className="glass-card p-4 rounded-xl border border-white/30">
-                <div className="font-semibold text-white mb-1">{respondAction.requesterName}</div>
-                <div className="text-sm text-white/70 mb-2">{respondAction.clubName}</div>
-                <div className="text-sm text-white/90">
-                  Du bist dabei, diese Anfrage zu {respondAction.action === 'accept' ? 'akzeptieren' : 'ablehnen'}.
+              <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                <div className="font-semibold text-gray-900 mb-1">{respondAction.requesterName}</div>
+                <div className="text-sm text-gray-600 mb-2">{respondAction.clubName}</div>
+                <div className="text-sm text-gray-700">
+                  Du bist dabei, diese Anfrage zu {respondAction.action === 'accept' ? <span className="font-semibold text-green-700">akzeptieren</span> : <span className="font-semibold text-red-700">ablehnen</span>}.
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-white/90 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Nachricht (optional)
                 </label>
                 <textarea
                   value={respondMessage}
                   onChange={(e) => setRespondMessage(e.target.value)}
                   placeholder="Nachricht hinzufügen..."
-                  className="w-full px-4 py-3 glass-card border border-white/30 rounded-lg focus:ring-2 focus:ring-[#D04D2E] focus:border-[#D04D2E] resize-none text-white placeholder-white/50"
+                  className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D04D2E] focus:border-[#D04D2E] resize-none text-gray-900 placeholder-gray-400"
                   rows={4}
                 />
               </div>
@@ -560,13 +562,13 @@ export default function MyOffersPage() {
               <div className="flex gap-3">
                 <button
                   onClick={handleBackToList}
-                  className="flex-1 px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 font-medium transition backdrop-blur-sm border border-white/30"
+                  className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium transition border border-gray-300"
                 >
                   Zurück
                 </button>
                 <button
                   onClick={handleRespondToRequest}
-                  className={`flex-1 px-4 py-2 text-white rounded-lg font-medium transition ${
+                  className={`flex-1 px-4 py-2 text-white rounded-lg font-medium transition shadow-sm hover:shadow ${
                     respondAction.action === 'accept'
                       ? 'bg-green-600 hover:bg-green-700'
                       : 'bg-red-600 hover:bg-red-700'
