@@ -25,7 +25,40 @@ type ClubDetail = {
   teams: TeamItem[]
 }
 
-const ALL_AGES = Array.from({ length: 14 }, (_, i) => `U${i + 6}`)
+// Zwei-stufige Altersklassen
+type AgeCategory = 'JUNIOREN' | 'JUNIORINNEN' | 'HERREN' | 'DAMEN' | 'FREIZEITLIGA'
+type JuniorenAge = 'U6'|'U7'|'U8'|'U9'|'U10'|'U11'|'U12'|'U13'|'U14'|'U15'|'U16'|'U17'|'U18'|'U19'
+type JuniorinnenAge = 'U15' | 'U17'
+type HerrenAge = 'HERREN' | 'UE32' | 'UE40' | 'UE50' | 'UE60'
+type DamenAge = 'DAMEN'
+type FreizeitAge = 'FREIZEITLIGA'
+type SubAge = JuniorenAge | JuniorinnenAge | HerrenAge | DamenAge | FreizeitAge
+
+const AGE_CATEGORY_LABEL: Record<AgeCategory, string> = {
+  JUNIOREN: 'Junioren',
+  JUNIORINNEN: 'Juniorinnen',
+  HERREN: 'Herren',
+  DAMEN: 'Damen',
+  FREIZEITLIGA: 'Freizeitliga',
+}
+
+const JUNIOREN_AGES: JuniorenAge[] = ['U6','U7','U8','U9','U10','U11','U12','U13','U14','U15','U16','U17','U18','U19']
+const JUNIORINNEN_AGES: JuniorinnenAge[] = ['U15', 'U17']
+const HERREN_AGES: HerrenAge[] = ['HERREN', 'UE32', 'UE40', 'UE50', 'UE60']
+const DAMEN_AGES: DamenAge[] = ['DAMEN']
+const FREIZEIT_AGES: FreizeitAge[] = ['FREIZEITLIGA']
+
+const SUB_AGE_LABEL: Record<string, string> = {
+  HERREN: 'Herren',
+  UE32: 'Ü32',
+  UE40: 'Ü40',
+  UE50: 'Ü50',
+  UE60: 'Ü60',
+  DAMEN: 'Damen',
+  FREIZEITLIGA: 'Freizeitliga',
+}
+
+const AGE_CATEGORIES: AgeCategory[] = ['JUNIOREN', 'JUNIORINNEN', 'HERREN', 'DAMEN', 'FREIZEITLIGA']
 
 export default function RegisterChooseTeam() {
   const router = useRouter()
@@ -38,9 +71,33 @@ export default function RegisterChooseTeam() {
 
   // Formular-States
   const [tName, setTName] = useState('')
+  const [ageCategory, setAgeCategory] = useState<AgeCategory>('JUNIOREN')
   const [age, setAge] = useState<string>('U13')
   const [year, setYear] = useState('') // YYYY, optional
   const [submitting, setSubmitting] = useState(false)
+  
+  // Sub-Ages basierend auf gewählter Category
+  const availableSubAges = (): SubAge[] => {
+    switch (ageCategory) {
+      case 'JUNIOREN': return JUNIOREN_AGES
+      case 'JUNIORINNEN': return JUNIORINNEN_AGES
+      case 'HERREN': return HERREN_AGES
+      case 'DAMEN': return DAMEN_AGES
+      case 'FREIZEITLIGA': return FREIZEIT_AGES
+      default: return []
+    }
+  }
+  
+  // Wenn sich die Category ändert, setze die erste verfügbare Sub-Age
+  useEffect(() => {
+    const subAges = availableSubAges()
+    if (subAges.length > 0) {
+      setAge(subAges[0])
+    }
+  }, [ageCategory])
+  
+  // Nur bei Junioren/Juniorinnen Jahrgang anzeigen
+  const showYearField = ageCategory === 'JUNIOREN' || ageCategory === 'JUNIORINNEN'
 
   useEffect(() => {
     if (!clubId) {
@@ -75,8 +132,9 @@ export default function RegisterChooseTeam() {
         body: JSON.stringify({
           clubId,
           name: tName.trim() || null,
+          ageCategory,
           ageGroup: age,
-          year: year ? Number(year) : null,
+          year: showYearField && year ? Number(year) : null,
         }),
       })
       const data = await res.json().catch(() => ({}))
@@ -174,7 +232,23 @@ export default function RegisterChooseTeam() {
                   placeholder="z. B. U13-1"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              
+              {/* Schritt 1: Altersgruppen-Kategorie wählen */}
+              <div>
+                <label className="block text-xs font-medium mb-1 text-white/85">Altersgruppe</label>
+                <select
+                  className="w-full rounded-xl border border-white/30 bg-white/15 text-white placeholder-white/60 px-3 py-2 backdrop-blur-sm"
+                  value={ageCategory}
+                  onChange={(e)=>setAgeCategory(e.target.value as AgeCategory)}
+                >
+                  {AGE_CATEGORIES.map(cat => (
+                    <option key={cat} value={cat}>{AGE_CATEGORY_LABEL[cat]}</option>
+                  ))}
+                </select>
+              </div>
+              
+              {/* Schritt 2: Konkrete Altersstufe wählen */}
+              <div className={showYearField ? 'grid grid-cols-2 gap-3' : ''}>
                 <div>
                   <label className="block text-xs font-medium mb-1 text-white/85">Altersstufe</label>
                   <select
@@ -182,20 +256,28 @@ export default function RegisterChooseTeam() {
                     value={age}
                     onChange={(e)=>setAge(e.target.value)}
                   >
-                    {ALL_AGES.map(a => <option key={a} value={a}>{a}</option>)}
+                    {availableSubAges().map(a => (
+                      <option key={a} value={a}>
+                        {SUB_AGE_LABEL[a] || a}
+                      </option>
+                    ))}
                   </select>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium mb-1 text-white/85">Jahrgang (YYYY, optional)</label>
-                  <input
-                    className="w-full rounded-xl border border-white/30 bg-white/15 text-white placeholder-white/60 px-3 py-2 backdrop-blur-sm"
-                    value={year}
-                    onChange={(e)=>setYear(e.target.value.replace(/\D/g,''))}
-                    inputMode="numeric"
-                    maxLength={4}
-                    placeholder="z. B. 2012"
-                  />
-                </div>
+                
+                {/* Jahrgang nur bei Junioren/Juniorinnen */}
+                {showYearField && (
+                  <div>
+                    <label className="block text-xs font-medium mb-1 text-white/85">Jahrgang (YYYY, optional)</label>
+                    <input
+                      className="w-full rounded-xl border border-white/30 bg-white/15 text-white placeholder-white/60 px-3 py-2 backdrop-blur-sm"
+                      value={year}
+                      onChange={(e)=>setYear(e.target.value.replace(/\D/g,''))}
+                      inputMode="numeric"
+                      maxLength={4}
+                      placeholder="z. B. 2012"
+                    />
+                  </div>
+                )}
               </div>
 
               {error && <p className="text-sm text-red-200">{error}</p>}

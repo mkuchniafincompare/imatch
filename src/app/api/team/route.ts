@@ -35,7 +35,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Nicht eingeloggt' }, { status: 401 })
     }
 
-    const { clubId, name, ageGroup, year, preferredForm } = await req.json()
+    const { clubId, name, ageCategory, ageGroup, year, preferredForm } = await req.json()
 
     if (!clubId || !ageGroup) {
       return NextResponse.json({ error: 'clubId und ageGroup sind erforderlich' }, { status: 400 })
@@ -52,13 +52,14 @@ export async function POST(req: Request) {
       data: {
         clubId,
         contactUserId: userId,
+        ageCategory: ageCategory || null,
         ageGroup,
         level: 'MITTEL',
         name: name?.trim() || null,
         year: yearNum,
         preferredForm: preferredForm || null,
       },
-      select: { id: true, clubId: true, name: true, ageGroup: true, year: true, preferredForm: true },
+      select: { id: true, clubId: true, name: true, ageCategory: true, ageGroup: true, year: true, preferredForm: true },
     })
 
     return NextResponse.json({
