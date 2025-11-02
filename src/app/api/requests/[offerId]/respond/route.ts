@@ -76,17 +76,38 @@ export async function POST(
     // Update request status
     const newStatus = action === 'accept' ? 'ACCEPTED' : 'REJECTED'
     
-    // For ACCEPT: Check if another request was already accepted
+    // For ACCEPT: Check if max acceptances reached based on matchType
     if (action === 'accept') {
-      const existingAccepted = await prisma.offerRequest.findFirst({
+      const matchType = (offer as any).matchType ?? 'TESTSPIEL'
+      const numberOfOpponents = (offer as any).numberOfOpponents ?? 1
+      
+      // Count currently accepted requests
+      const acceptedCount = await prisma.offerRequest.count({
         where: {
           offerId,
           status: 'ACCEPTED',
         },
       })
 
-      if (existingAccepted && existingAccepted.requesterUserId !== requesterId) {
-        return NextResponse.json({ error: 'Es wurde bereits eine andere Anfrage akzeptiert' }, { status: 400 })
+      if (matchType === 'TESTSPIEL') {
+        // Testspiel: Only 1 acceptance allowed
+        if (acceptedCount >= 1) {
+          const existingAccepted = await prisma.offerRequest.findFirst({
+            where: {
+              offerId,
+              status: 'ACCEPTED',
+            },
+          })
+          
+          if (existingAccepted && existingAccepted.requesterUserId !== requesterId) {
+            return NextResponse.json({ error: 'Es wurde bereits eine andere Anfrage akzeptiert' }, { status: 400 })
+          }
+        }
+      } else {
+        // Leistungsvergleich: Multiple acceptances allowed up to numberOfOpponents
+        if (acceptedCount >= numberOfOpponents) {
+          return NextResponse.json({ error: `Maximale Anzahl an Gegnern (${numberOfOpponents}) bereits erreicht` }, { status: 400 })
+        }
       }
     }
 
