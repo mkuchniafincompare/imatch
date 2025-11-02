@@ -113,18 +113,37 @@ export async function GET() {
 
       const ageLabel = o.ages[0]?.ageGroup ?? (o as any).team?.ageGroup ?? null
       const strengthLabel = o.strength ? (STRENGTH_LABEL[o.strength] ?? o.strength) : null
-
-      // Get opponent info from accepted request
-      const acceptedRequest = o.requests?.[0]
-      // Use requesterTeam if available, otherwise fallback to first team of requester user
-      const opponentTeam = acceptedRequest?.requesterTeam || acceptedRequest?.requesterUser?.teams?.[0]
-      const opponentClub = opponentTeam?.club
       const isOwner = o.team?.contactUserId === userId
+      const matchType = (o as any).matchType ?? 'TESTSPIEL'
       
-      // Determine opponent trainer ID
+      // For Leistungsvergleich: Get ALL accepted opponents
+      // For Testspiel: Get single opponent (backward compatible)
+      const allOpponents = o.requests.map(req => {
+        const opponentTeam = req.requesterTeam || req.requesterUser?.teams?.[0]
+        const opponentClub = opponentTeam?.club
+        
+        return {
+          clubName: opponentClub?.name ?? '—',
+          ageLabel: opponentTeam?.ageGroup ?? null,
+          year: opponentTeam?.year ?? null,
+          logoUrl: opponentClub?.logoUrl ?? null,
+          trainerId: req.requesterUserId ?? null,
+        }
+      })
+      
+      // First opponent for backward compatibility (Testspiel)
+      const firstOpponent = allOpponents[0] || {
+        clubName: '—',
+        ageLabel: null,
+        year: null,
+        logoUrl: null,
+        trainerId: null,
+      }
+      
+      // Determine opponent trainer ID for Testspiel
       const opponentTrainerId = isOwner 
-        ? acceptedRequest?.requesterUserId // If I'm the owner, opponent is the requester
-        : o.team?.contactUserId // If I'm the requester, opponent is the offer owner
+        ? firstOpponent.trainerId
+        : o.team?.contactUserId
 
       return {
         id: o.id,
@@ -133,12 +152,14 @@ export async function GET() {
         ageLabel,
         year: (o as any).team?.year ?? null,
         logoUrl: club?.logoUrl ?? null,
-        // Opponent team info
-        opponentClubName: opponentClub?.name ?? '—',
-        opponentAgeLabel: opponentTeam?.ageGroup ?? null,
-        opponentYear: opponentTeam?.year ?? null,
-        opponentLogoUrl: opponentClub?.logoUrl ?? null,
+        // Single opponent info (for Testspiel backward compatibility)
+        opponentClubName: firstOpponent.clubName,
+        opponentAgeLabel: firstOpponent.ageLabel,
+        opponentYear: firstOpponent.year,
+        opponentLogoUrl: firstOpponent.logoUrl,
         opponentTrainerId: opponentTrainerId ?? null,
+        // All opponents (for Leistungsvergleich)
+        opponents: matchType === 'LEISTUNGSVERGLEICH' ? allOpponents : undefined,
         // Match details
         date: o.offerDate ? new Date(o.offerDate).toISOString().slice(0,10) : null,
         kickoffTime: o.kickoffTime ?? null,
@@ -150,7 +171,7 @@ export async function GET() {
         address,
         pendingRequestCount: o._count?.requests ?? 0,
         isOwner, // true if current user is the offer creator
-        matchType: (o as any).matchType ?? 'TESTSPIEL',
+        matchType,
         numberOfOpponents: (o as any).numberOfOpponents ?? 1,
       }
     })

@@ -3,18 +3,60 @@
 import React, { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 
+// Helper component for opponent teams
+function OpponentTeam({ clubName, ageLabel, year, logoUrl }: {
+  clubName: string
+  ageLabel: string | null
+  year: number | null
+  logoUrl: string | null
+}) {
+  const [imgErr, setImgErr] = useState(false)
+  
+  return (
+    <div className="flex-shrink-0 flex flex-col items-center text-center">
+      <div className="w-16 h-16 rounded-md overflow-hidden border border-white/25 bg-white/15 backdrop-blur-[1px] grid place-items-center mb-2">
+        {logoUrl && !imgErr ? (
+          <Image
+            src={logoUrl}
+            alt={clubName}
+            width={64}
+            height={64}
+            className="object-cover w-full h-full"
+            onError={() => setImgErr(true)}
+            priority={false}
+          />
+        ) : (
+          <span className="text-[10px] text-white/70">Logo</span>
+        )}
+      </div>
+      <div className="font-semibold text-sm text-white">{clubName}</div>
+      <div className="text-xs text-white/80">
+        {ageLabel} {year && `(${year})`}
+      </div>
+    </div>
+  )
+}
+
 type Props = {
   // Team 1 (own team)
   clubName: string
   ageLabel: string | null
   year?: number | null
   logoUrl?: string | null
-  // Team 2 (opponent)
-  opponentClubName: string
-  opponentAgeLabel: string | null
+  // Team 2 (opponent) - can be single or array for Leistungsvergleich
+  opponentClubName?: string
+  opponentAgeLabel?: string | null
   opponentYear?: number | null
   opponentLogoUrl?: string | null
   opponentTrainerId?: string | null
+  // Multiple opponents for Leistungsvergleich
+  opponents?: Array<{
+    clubName: string
+    ageLabel: string | null
+    year: number | null
+    logoUrl: string | null
+    trainerId: string | null
+  }>
   // Match details
   date?: string | null
   kickoffTime?: string | null
@@ -37,6 +79,7 @@ type Props = {
 export default function ConfirmedMatchCard({
   clubName, ageLabel, year, logoUrl,
   opponentClubName, opponentAgeLabel, opponentYear, opponentLogoUrl, opponentTrainerId,
+  opponents,
   date, kickoffTime, kickoffFlexible,
   homeAway, notes, playTime, strengthLabel, address,
   pendingRequestCount, isOwner,
@@ -73,72 +116,110 @@ export default function ConfirmedMatchCard({
 
   return (
     <div className="relative overflow-hidden rounded-2xl px-4 py-4">
-      {/* Match Type Label */}
+      {/* Match Type Label - exakt wie auf my-offers */}
       <div className="mb-3">
-        <span className={`inline-flex items-center gap-1 text-xs font-semibold px-3 py-1 rounded-full ${
+        <span className={`inline-block text-white text-xs font-bold px-2 py-1 rounded shadow-md ${
           isLeistungsvergleich 
-            ? 'bg-blue-500/20 text-blue-200 border border-blue-400/30' 
-            : 'bg-green-500/20 text-green-200 border border-green-400/30'
+            ? 'bg-blue-500' 
+            : 'bg-green-500'
         }`}>
-          {isLeistungsvergleich ? '🏆' : '⚽'} {matchTypeLabel}
+          {matchTypeLabel}
         </span>
       </div>
 
       {/* Teams Darstellung */}
-      <div className={`flex items-center ${isLeistungsvergleich ? 'justify-start' : 'justify-between'} gap-4 mb-4`}>
-        {/* Team 1 (Own Team) */}
-        <div className={`${isLeistungsvergleich ? 'flex-shrink-0' : 'flex-1'} flex flex-col items-center text-center`}>
-          <div className="w-16 h-16 rounded-md overflow-hidden border border-white/25 bg-white/15 backdrop-blur-[1px] grid place-items-center mb-2">
-            {logoUrl && !imgErr1 ? (
-              <Image
-                src={logoUrl}
-                alt={clubName}
-                width={64}
-                height={64}
-                className="object-cover w-full h-full"
-                onError={() => setImgErr1(true)}
-                priority={false}
-              />
-            ) : (
-              <span className="text-[10px] text-white/70">Logo</span>
-            )}
+      {isLeistungsvergleich && opponents ? (
+        // Leistungsvergleich: Alle Gegner nebeneinander
+        <div className="flex items-start gap-3 mb-4 overflow-x-auto pb-2">
+          {/* Own Team */}
+          <div className="flex-shrink-0 flex flex-col items-center text-center">
+            <div className="w-16 h-16 rounded-md overflow-hidden border border-white/25 bg-white/15 backdrop-blur-[1px] grid place-items-center mb-2">
+              {logoUrl && !imgErr1 ? (
+                <Image
+                  src={logoUrl}
+                  alt={clubName}
+                  width={64}
+                  height={64}
+                  className="object-cover w-full h-full"
+                  onError={() => setImgErr1(true)}
+                  priority={false}
+                />
+              ) : (
+                <span className="text-[10px] text-white/70">Logo</span>
+              )}
+            </div>
+            <div className="font-semibold text-sm text-white">{clubName}</div>
+            <div className="text-xs text-white/80">
+              {ageLabel} {year && `(${year})`}
+            </div>
           </div>
-          <div className="font-semibold text-sm text-white">{clubName}</div>
-          <div className="text-xs text-white/80">
-            {ageLabel} {year && `(${year})`}
-          </div>
-        </div>
 
-        {/* VS oder Separator */}
-        {!isLeistungsvergleich && (
+          {/* All opponent teams */}
+          {opponents.map((opp, idx) => (
+            <OpponentTeam
+              key={idx}
+              clubName={opp.clubName}
+              ageLabel={opp.ageLabel}
+              year={opp.year}
+              logoUrl={opp.logoUrl}
+            />
+          ))}
+        </div>
+      ) : (
+        // Testspiel: VS-Darstellung
+        <div className="flex items-center justify-between gap-4 mb-4">
+          {/* Team 1 (Own Team) */}
+          <div className="flex-1 flex flex-col items-center text-center">
+            <div className="w-16 h-16 rounded-md overflow-hidden border border-white/25 bg-white/15 backdrop-blur-[1px] grid place-items-center mb-2">
+              {logoUrl && !imgErr1 ? (
+                <Image
+                  src={logoUrl}
+                  alt={clubName}
+                  width={64}
+                  height={64}
+                  className="object-cover w-full h-full"
+                  onError={() => setImgErr1(true)}
+                  priority={false}
+                />
+              ) : (
+                <span className="text-[10px] text-white/70">Logo</span>
+              )}
+            </div>
+            <div className="font-semibold text-sm text-white">{clubName}</div>
+            <div className="text-xs text-white/80">
+              {ageLabel} {year && `(${year})`}
+            </div>
+          </div>
+
+          {/* VS */}
           <div className="flex-shrink-0 px-3">
             <div className="text-2xl font-bold text-white/90">VS</div>
           </div>
-        )}
 
-        {/* Team 2 (Opponent) */}
-        <div className={`${isLeistungsvergleich ? 'flex-shrink-0' : 'flex-1'} flex flex-col items-center text-center`}>
-          <div className="w-16 h-16 rounded-md overflow-hidden border border-white/25 bg-white/15 backdrop-blur-[1px] grid place-items-center mb-2">
-            {opponentLogoUrl && !imgErr2 ? (
-              <Image
-                src={opponentLogoUrl}
-                alt={opponentClubName}
-                width={64}
-                height={64}
-                className="object-cover w-full h-full"
-                onError={() => setImgErr2(true)}
-                priority={false}
-              />
-            ) : (
-              <span className="text-[10px] text-white/70">Logo</span>
-            )}
-          </div>
-          <div className="font-semibold text-sm text-white">{opponentClubName}</div>
-          <div className="text-xs text-white/80">
-            {opponentAgeLabel} {opponentYear && `(${opponentYear})`}
+          {/* Team 2 (Opponent) */}
+          <div className="flex-1 flex flex-col items-center text-center">
+            <div className="w-16 h-16 rounded-md overflow-hidden border border-white/25 bg-white/15 backdrop-blur-[1px] grid place-items-center mb-2">
+              {opponentLogoUrl && !imgErr2 ? (
+                <Image
+                  src={opponentLogoUrl}
+                  alt={opponentClubName || '—'}
+                  width={64}
+                  height={64}
+                  className="object-cover w-full h-full"
+                  onError={() => setImgErr2(true)}
+                  priority={false}
+                />
+              ) : (
+                <span className="text-[10px] text-white/70">Logo</span>
+              )}
+            </div>
+            <div className="font-semibold text-sm text-white">{opponentClubName || '—'}</div>
+            <div className="text-xs text-white/80">
+              {opponentAgeLabel} {opponentYear && `(${opponentYear})`}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Match Info */}
       <div className="mt-3 text-[12px] text-white/90 flex flex-wrap items-center gap-2 justify-center">

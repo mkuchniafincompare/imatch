@@ -26,6 +26,13 @@ interface MatchItem {
   opponentYear?: number | null
   opponentLogoUrl?: string | null
   opponentTrainerId?: string | null
+  opponents?: Array<{
+    clubName: string
+    ageLabel: string | null
+    year: number | null
+    logoUrl: string | null
+    trainerId: string | null
+  }>
   isOwner?: boolean
   matchType?: string
   numberOfOpponents?: number
@@ -163,6 +170,7 @@ export default function ConfirmedMatchesPage() {
                   opponentYear={offer.opponentYear}
                   opponentLogoUrl={offer.opponentLogoUrl}
                   opponentTrainerId={offer.opponentTrainerId}
+                  opponents={offer.opponents}
                   date={offer.date}
                   kickoffTime={offer.kickoffTime}
                   kickoffFlexible={offer.kickoffFlexible}
