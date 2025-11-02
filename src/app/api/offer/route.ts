@@ -177,12 +177,6 @@ export async function GET(req: Request) {
       : dateFrom ? { offerDate: { gte: dateFrom } }
       : dateTo   ? { offerDate: { lte: dateTo } }
       : {}),
-    // Exclude offers that have been confirmed (ACCEPTED status)
-    requests: {
-      none: {
-        status: 'ACCEPTED',
-      },
-    },
   }
   // Eigene Angebote (vom eingeloggten User) ausblenden
   if (currentUserId) {
@@ -193,17 +187,39 @@ export async function GET(req: Request) {
     ;(where as any).NOT = [...notArray, { team: { contactUserId: currentUserId } }]
   }
 
-  // Query
+  // Query - include requests to filter based on match type
   const offers = await prisma.gameOffer.findMany({
     where,
-    include: { team: { include: { club: true } }, ages: true },
+    include: { 
+      team: { include: { club: true } }, 
+      ages: true,
+      requests: {
+        where: { status: 'ACCEPTED' },
+      },
+    },
     orderBy: [{ offerDate: 'asc' }, { dateStart: 'asc' }],
     take: 100,
   })
 
+  // Filter based on match type:
+  // - Testspiel: exclude if any accepted request exists
+  // - Leistungsvergleich: exclude only if all slots filled (acceptedCount >= numberOfOpponents)
+  const filteredOffers = offers.filter(o => {
+    const acceptedCount = o.requests?.length || 0
+    const matchType = (o as any).matchType || 'TESTSPIEL'
+    
+    if (matchType === 'LEISTUNGSVERGLEICH') {
+      const numberOfOpponents = (o as any).numberOfOpponents || 1
+      return acceptedCount < numberOfOpponents
+    } else {
+      // Testspiel: exclude if any accepted request
+      return acceptedCount === 0
+    }
+  })
+
   // -- Saved offers of current user (always include, ignore filters)
   let savedIds = new Set<string>()
-  let allOffers = offers
+  let allOffers = filteredOffers
   if (currentUserId) {
     const savedRows = await prisma.savedOffer.findMany({
       where: { userId: currentUserId },
@@ -211,25 +227,37 @@ export async function GET(req: Request) {
     })
     savedIds = new Set(savedRows.map(r => r.offerId))
 
-    const existingIds = new Set(offers.map(o => o.id))
+    const existingIds = new Set(filteredOffers.map(o => o.id))
     const missingSaved = Array.from(savedIds).filter(id => !existingIds.has(id))
     if (missingSaved.length > 0) {
       const extra = await prisma.gameOffer.findMany({
         where: { 
           id: { in: missingSaved },
-          // Also exclude confirmed (ACCEPTED) saved offers
+        },
+        include: { 
+          team: { include: { club: true } }, 
+          ages: true,
           requests: {
-            none: {
-              status: 'ACCEPTED',
-            },
+            where: { status: 'ACCEPTED' },
           },
         },
-        include: { team: { include: { club: true } }, ages: true },
+      })
+      // Filter extras same way
+      const filteredExtras = extra.filter(o => {
+        const acceptedCount = o.requests?.length || 0
+        const matchType = (o as any).matchType || 'TESTSPIEL'
+        
+        if (matchType === 'LEISTUNGSVERGLEICH') {
+          const numberOfOpponents = (o as any).numberOfOpponents || 1
+          return acceptedCount < numberOfOpponents
+        } else {
+          return acceptedCount === 0
+        }
       })
       // prepend saved extras, so they appear first before sorting fallback
-      allOffers = [...extra, ...offers]
+      allOffers = [...filteredExtras, ...filteredOffers]
     } else {
-      allOffers = offers
+      allOffers = filteredOffers
     }
   }
 
