@@ -13,24 +13,24 @@ function OpponentTeam({ clubName, ageLabel, year, logoUrl }: {
   const [imgErr, setImgErr] = useState(false)
   
   return (
-    <div className="flex-shrink-0 flex flex-col items-center text-center">
-      <div className="w-16 h-16 rounded-md overflow-hidden border border-white/25 bg-white/15 backdrop-blur-[1px] grid place-items-center mb-2">
+    <div className="flex flex-col items-center text-center">
+      <div className="w-12 h-12 rounded-md overflow-hidden border border-white/25 bg-white/15 backdrop-blur-[1px] grid place-items-center mb-1.5">
         {logoUrl && !imgErr ? (
           <Image
             src={logoUrl}
             alt={clubName}
-            width={64}
-            height={64}
+            width={48}
+            height={48}
             className="object-cover w-full h-full"
             onError={() => setImgErr(true)}
             priority={false}
           />
         ) : (
-          <span className="text-[10px] text-white/70">Logo</span>
+          <span className="text-[9px] text-white/70">Logo</span>
         )}
       </div>
-      <div className="font-semibold text-sm text-white">{clubName}</div>
-      <div className="text-xs text-white/80">
+      <div className="font-semibold text-xs text-white leading-tight">{clubName}</div>
+      <div className="text-[11px] text-white/80">
         {ageLabel} {year && `(${year})`}
       </div>
     </div>
@@ -129,27 +129,27 @@ export default function ConfirmedMatchCard({
 
       {/* Teams Darstellung */}
       {isLeistungsvergleich && opponents ? (
-        // Leistungsvergleich: Alle Gegner nebeneinander
-        <div className="flex items-start gap-3 mb-4 overflow-x-auto pb-2">
+        // Leistungsvergleich: Alle Gegner mit automatischem Umbruch
+        <div className="flex flex-wrap items-start justify-center gap-3 mb-4">
           {/* Own Team */}
-          <div className="flex-shrink-0 flex flex-col items-center text-center">
-            <div className="w-16 h-16 rounded-md overflow-hidden border border-white/25 bg-white/15 backdrop-blur-[1px] grid place-items-center mb-2">
+          <div className="flex flex-col items-center text-center">
+            <div className="w-12 h-12 rounded-md overflow-hidden border border-white/25 bg-white/15 backdrop-blur-[1px] grid place-items-center mb-1.5">
               {logoUrl && !imgErr1 ? (
                 <Image
                   src={logoUrl}
                   alt={clubName}
-                  width={64}
-                  height={64}
+                  width={48}
+                  height={48}
                   className="object-cover w-full h-full"
                   onError={() => setImgErr1(true)}
                   priority={false}
                 />
               ) : (
-                <span className="text-[10px] text-white/70">Logo</span>
+                <span className="text-[9px] text-white/70">Logo</span>
               )}
             </div>
-            <div className="font-semibold text-sm text-white">{clubName}</div>
-            <div className="text-xs text-white/80">
+            <div className="font-semibold text-xs text-white leading-tight">{clubName}</div>
+            <div className="text-[11px] text-white/80">
               {ageLabel} {year && `(${year})`}
             </div>
           </div>
