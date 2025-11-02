@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getUserIdFromCookie } from '@/lib/auth'
+import { STRENGTH_LABEL } from '@/config/ageStrength'
 
 // GET /api/requests/confirmed - Alle akzeptierten Spiele (sowohl als Ersteller als auch als Anfragender)
 export async function GET() {
@@ -89,21 +90,6 @@ export async function GET() {
       },
     })
 
-    const STRENGTH_LABEL: Record<string, string> = {
-      SEHR_SCHWACH: 'sehr schwach',
-      SCHWACH: 'schwach',
-      NORMAL: 'normal',
-      STARK: 'stark',
-      SEHR_STARK: 'sehr stark',
-      GRUPPE: 'Gruppe',
-      KREISKLASSE: 'Kreisklasse',
-      KREISLIGA: 'Kreisliga',
-      BEZIRKSOBERLIGA: 'Bezirksoberliga',
-      FOERDERLIGA: 'Förderliga',
-      NLZ_LIGA: 'NLZ-Liga',
-      BAYERNLIGA: 'Bayernliga',
-      REGIONALLIGA: 'Regionalliga',
-    }
 
     const items = offers.map(o => {
       const club = o.team?.club

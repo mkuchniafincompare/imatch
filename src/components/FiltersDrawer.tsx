@@ -3,60 +3,31 @@
 import React from 'react'
 import Drawer from '@/components/Drawer'
 import FilterChip from '@/components/FilterChip'
+import { 
+  type AgeCategory as AgeCategoryType, 
+  type Strength, 
+  type SubAge,
+  AGE_CATEGORY_LABEL, 
+  AGE_CATEGORIES,
+  SUB_AGE_LABEL,
+  STRENGTH_LABEL,
+  getSubAgesByCategory,
+  getAvailableStrengths,
+  getStrengthOrder
+} from '@/config/ageStrength'
 
 // --- Types ------------------------------------------------------------
 export type HomeAway = 'HOME' | 'AWAY' | 'FLEX' | null
-
-export type Strength =
-  | 'SEHR_SCHWACH' | 'SCHWACH' | 'NORMAL' | 'STARK' | 'SEHR_STARK'
-  | 'GRUPPE' | 'KREISKLASSE' | 'KREISLIGA' | 'BEZIRKSOBERLIGA' | 'FOERDERLIGA' | 'NLZ_LIGA'
-  | 'BAYERNLIGA' | 'REGIONALLIGA'
+export type AgeCategory = AgeCategoryType | null
 
 export type PlayForm =
   | 'FUNINO' | 'FUSSBALL_4' | 'FUSSBALL_5' | 'FUSSBALL_7' | 'NEUN_GEGEN_NEUN' | 'ELF_GEGEN_ELF'
 
-// Zwei-stufige Altersklassen
-export type AgeCategory = 'JUNIOREN' | 'JUNIORINNEN' | 'HERREN' | 'DAMEN' | 'FREIZEITLIGA' | null
-type JuniorenAge = 'U6'|'U7'|'U8'|'U9'|'U10'|'U11'|'U12'|'U13'|'U14'|'U15'|'U16'|'U17'|'U18'|'U19'
-type JuniorinnenAge = 'U15' | 'U17'
-type HerrenAge = 'HERREN' | 'UE32' | 'UE40' | 'UE50' | 'UE60'
-type DamenAge = 'DAMEN'
-type FreizeitAge = 'FREIZEITLIGA'
-
-export const AGE_CATEGORY_LABEL: Record<Exclude<AgeCategory, null>, string> = {
-  JUNIOREN: 'Junioren',
-  JUNIORINNEN: 'Juniorinnen',
-  HERREN: 'Herren',
-  DAMEN: 'Damen',
-  FREIZEITLIGA: 'Freizeitliga',
-}
-
-export const JUNIOREN_AGES: JuniorenAge[] = ['U6','U7','U8','U9','U10','U11','U12','U13','U14','U15','U16','U17','U18','U19']
-export const JUNIORINNEN_AGES: JuniorinnenAge[] = ['U15', 'U17']
-export const HERREN_AGES: HerrenAge[] = ['HERREN', 'UE32', 'UE40', 'UE50', 'UE60']
-export const DAMEN_AGES: DamenAge[] = ['DAMEN']
-export const FREIZEIT_AGES: FreizeitAge[] = ['FREIZEITLIGA']
-
-export const SUB_AGE_LABEL: Record<string, string> = {
-  HERREN: 'Herren',
-  UE32: 'Ü32',
-  UE40: 'Ü40',
-  UE50: 'Ü50',
-  UE60: 'Ü60',
-  DAMEN: 'Damen',
-  FREIZEITLIGA: 'Freizeitliga',
-}
-
-export const AGE_CATEGORIES: Exclude<AgeCategory, null>[] = ['JUNIOREN', 'JUNIORINNEN', 'HERREN', 'DAMEN', 'FREIZEITLIGA']
-
-export const STRENGTH_ORDER: Strength[] = [
-  'SEHR_SCHWACH','SCHWACH','NORMAL','STARK','SEHR_STARK',
-  'GRUPPE','KREISKLASSE','KREISLIGA','BEZIRKSOBERLIGA','FOERDERLIGA','NLZ_LIGA',
-  'BAYERNLIGA','REGIONALLIGA',
-]
 export const PLAY_FORMS: PlayForm[] = [
   'FUNINO','FUSSBALL_4','FUSSBALL_5','FUSSBALL_7','NEUN_GEGEN_NEUN','ELF_GEGEN_ELF',
 ]
+
+export { type Strength } from '@/config/ageStrength'
 
 export type FiltersState = {
   ageCategory?: AgeCategory
@@ -84,12 +55,7 @@ export type FiltersDrawerProps = {
 
 function labelStrength(s?: Strength | null) {
   if (!s) return '—'
-  const map: Record<Strength,string> = {
-    SEHR_SCHWACH:'sehr schwach', SCHWACH:'schwach', NORMAL:'normal', STARK:'stark', SEHR_STARK:'sehr stark',
-    GRUPPE:'Gruppe', KREISKLASSE:'Kreisklasse', KREISLIGA:'Kreisliga', BEZIRKSOBERLIGA:'Bezirksoberliga',
-    FOERDERLIGA:'Förderliga', NLZ_LIGA:'NLZ-Liga', BAYERNLIGA:'Bayernliga', REGIONALLIGA:'Regionalliga',
-  }
-  return map[s]
+  return STRENGTH_LABEL[s] || s
 }
 
 function Section({ title, children }: { title: string, children: React.ReactNode }) {
@@ -141,16 +107,13 @@ export default function FiltersDrawer({
   }, [isOpen]) // absichtlich nur auf Open reagieren
 
   // Verfügbare Sub-Ages basierend auf gewählter Kategorie
-  const availableSubAges = (): string[] => {
-    if (!ageCategory) return []
-    switch (ageCategory) {
-      case 'JUNIOREN': return JUNIOREN_AGES
-      case 'JUNIORINNEN': return JUNIORINNEN_AGES
-      case 'HERREN': return HERREN_AGES
-      case 'DAMEN': return DAMEN_AGES
-      case 'FREIZEITLIGA': return FREIZEIT_AGES
-      default: return []
-    }
+  const availableSubAges = (): SubAge[] => {
+    return getSubAgesByCategory(ageCategory)
+  }
+
+  // Verfügbare Spielstärken basierend auf ageCategory und gewählten Ages
+  const availableStrengths = (): Strength[] => {
+    return getAvailableStrengths(ageCategory, ages as SubAge[])
   }
 
   function toggleAge(a: string) {
@@ -194,7 +157,7 @@ export default function FiltersDrawer({
     setRadiusKm(null)
   }
 
-  const strengthOptions = STRENGTH_ORDER
+  const strengthOptions = availableStrengths()
 
   return (
     <Drawer isOpen={isOpen} onClose={onClose} title="Filter">

@@ -4,6 +4,16 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import BackgroundImage from '@/components/BackgroundImage'
 import SuccessModal from '@/components/SuccessModal'
+import {
+  type AgeCategory,
+  type Strength,
+  type SubAge,
+  AGE_CATEGORY_LABEL,
+  SUB_AGE_LABEL,
+  STRENGTH_LABEL,
+  getSubAgesByCategory,
+  getAvailableStrengths
+} from '@/config/ageStrength'
 
 type Team = {
   id: string
@@ -13,47 +23,9 @@ type Team = {
   city: string | null
 }
 
-// Zwei-stufige Altersklassen
-type AgeCategory = 'JUNIOREN' | 'JUNIORINNEN' | 'HERREN' | 'DAMEN' | 'FREIZEITLIGA'
-type JuniorenAge = 'U6'|'U7'|'U8'|'U9'|'U10'|'U11'|'U12'|'U13'|'U14'|'U15'|'U16'|'U17'|'U18'|'U19'
-type JuniorinnenAge = 'U15' | 'U17'
-type HerrenAge = 'HERREN' | 'UE32' | 'UE40' | 'UE50' | 'UE60'
-type DamenAge = 'DAMEN'
-type FreizeitAge = 'FREIZEITLIGA'
-type SubAge = JuniorenAge | JuniorinnenAge | HerrenAge | DamenAge | FreizeitAge
-
-const AGE_CATEGORY_LABEL: Record<AgeCategory, string> = {
-  JUNIOREN: 'Junioren',
-  JUNIORINNEN: 'Juniorinnen',
-  HERREN: 'Herren',
-  DAMEN: 'Damen',
-  FREIZEITLIGA: 'Freizeitliga',
-}
-
-const JUNIOREN_AGES: JuniorenAge[] = ['U6','U7','U8','U9','U10','U11','U12','U13','U14','U15','U16','U17','U18','U19']
-const JUNIORINNEN_AGES: JuniorinnenAge[] = ['U15', 'U17']
-const HERREN_AGES: HerrenAge[] = ['HERREN', 'UE32', 'UE40', 'UE50', 'UE60']
-const DAMEN_AGES: DamenAge[] = ['DAMEN']
-const FREIZEIT_AGES: FreizeitAge[] = ['FREIZEITLIGA']
-
-// Display labels for Sub-Ages
-const SUB_AGE_LABEL: Record<string, string> = {
-  HERREN: 'Herren',
-  UE32: 'Ü32',
-  UE40: 'Ü40',
-  UE50: 'Ü50',
-  UE60: 'Ü60',
-  DAMEN: 'Damen',
-  FREIZEITLIGA: 'Freizeitliga',
-}
-
 type HomeAway = 'HOME' | 'AWAY' | 'FLEX'
 type FieldType = 'FIELD' | 'TURF' | 'HALL'
 type MatchType = 'TESTSPIEL' | 'LEISTUNGSVERGLEICH'
-type Strength =
-  | 'SEHR_SCHWACH' | 'SCHWACH' | 'NORMAL' | 'STARK' | 'SEHR_STARK'
-  | 'GRUPPE' | 'KREISKLASSE' | 'KREISLIGA' | 'BEZIRKSOBERLIGA' | 'FOERDERLIGA' | 'NLZ_LIGA'
-  | 'BAYERNLIGA' | 'REGIONALLIGA'
 type PlayForm = 'FUNINO' | 'FUSSBALL_4' | 'FUSSBALL_5' | 'FUSSBALL_7' | 'NEUN_GEGEN_NEUN' | 'ELF_GEGEN_ELF'
 
 const FIELD_TYPE_LABEL: Record<FieldType, string> = { FIELD: 'Rasen', TURF: 'Kunstrasen', HALL: 'Halle' }
@@ -69,42 +41,6 @@ const PLAYFORM_LABEL: Record<PlayForm, string> = {
 const PLAYFORM_OPTIONS: PlayForm[] = [
   'FUNINO', 'FUSSBALL_4', 'FUSSBALL_5', 'FUSSBALL_7', 'NEUN_GEGEN_NEUN', 'ELF_GEGEN_ELF',
 ]
-
-const STRENGTH_LABEL: Record<Strength, string> = {
-  SEHR_SCHWACH: 'sehr schwach',
-  SCHWACH: 'schwach',
-  NORMAL: 'normal',
-  STARK: 'stark',
-  SEHR_STARK: 'sehr stark',
-  GRUPPE: 'Gruppe',
-  KREISKLASSE: 'Kreisklasse',
-  KREISLIGA: 'Kreisliga',
-  BEZIRKSOBERLIGA: 'Bezirksoberliga',
-  FOERDERLIGA: 'Förderliga',
-  NLZ_LIGA: 'NLZ-Liga',
-  BAYERNLIGA: 'Bayernliga',
-  REGIONALLIGA: 'Regionalliga',
-}
-const STRENGTH_U6_U11: Strength[] = ['SEHR_SCHWACH','SCHWACH','NORMAL','STARK','SEHR_STARK']
-const STRENGTH_U12_U13: Strength[] = ['GRUPPE','KREISKLASSE','KREISLIGA','BEZIRKSOBERLIGA','FOERDERLIGA','NLZ_LIGA']
-const STRENGTH_U14_UP: Strength[] = [...STRENGTH_U12_U13, 'BAYERNLIGA','REGIONALLIGA']
-
-function minAgeNumeric(ages: string[]): number {
-  const nums = ages.map(a => {
-    if (a.startsWith('U')) return Number(a.slice(1))
-    return 99
-  }).filter(n => n !== 99)
-  if (!nums.length) return 19
-  return Math.min(...nums)
-}
-
-function mergedStrengthOptions(selectedSubAges: SubAge[]): Strength[] {
-  if (!selectedSubAges.length) return STRENGTH_U6_U11
-  const minAge = minAgeNumeric(selectedSubAges)
-  if (minAge <= 11) return STRENGTH_U6_U11
-  if (minAge <= 13) return STRENGTH_U12_U13
-  return STRENGTH_U14_UP
-}
 
 function cls(...xs: (string | false | undefined)[]) { return xs.filter(Boolean).join(' ') }
 
@@ -146,17 +82,16 @@ export default function NewOfferPage() {
     })
   }, [])
 
-  const strengthOptions = useMemo(() => mergedStrengthOptions(selectedSubAges), [selectedSubAges])
+  const strengthOptions = useMemo(() => 
+    getAvailableStrengths(ageCategory || null, selectedSubAges), 
+    [ageCategory, selectedSubAges]
+  )
 
   // Sub-Ages abhängig von AgeCategory
-  const availableSubAges: SubAge[] = useMemo(() => {
-    if (ageCategory === 'JUNIOREN') return JUNIOREN_AGES
-    if (ageCategory === 'JUNIORINNEN') return JUNIORINNEN_AGES
-    if (ageCategory === 'HERREN') return HERREN_AGES
-    if (ageCategory === 'DAMEN') return DAMEN_AGES
-    if (ageCategory === 'FREIZEITLIGA') return FREIZEIT_AGES
-    return []
-  }, [ageCategory])
+  const availableSubAges: SubAge[] = useMemo(() => 
+    getSubAgesByCategory(ageCategory || null), 
+    [ageCategory]
+  )
 
   function toggleSubAge(age: SubAge) {
     setSelectedSubAges(prev => prev.includes(age) ? prev.filter(a => a !== age) : [...prev, age])

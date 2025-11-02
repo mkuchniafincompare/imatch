@@ -6,6 +6,14 @@ import Image from 'next/image'
 import BackgroundImage from '@/components/BackgroundImage'
 import RegisterHeaderBar from '@/components/RegisterHeaderBar'
 import RegisterProgress from '@/components/RegisterProgress'
+import {
+  type AgeCategory,
+  type SubAge,
+  AGE_CATEGORY_LABEL,
+  SUB_AGE_LABEL,
+  AGE_CATEGORIES,
+  getSubAgesByCategory
+} from '@/config/ageStrength'
 
 type TeamItem = {
   id: string
@@ -25,41 +33,6 @@ type ClubDetail = {
   teams: TeamItem[]
 }
 
-// Zwei-stufige Altersklassen
-type AgeCategory = 'JUNIOREN' | 'JUNIORINNEN' | 'HERREN' | 'DAMEN' | 'FREIZEITLIGA'
-type JuniorenAge = 'U6'|'U7'|'U8'|'U9'|'U10'|'U11'|'U12'|'U13'|'U14'|'U15'|'U16'|'U17'|'U18'|'U19'
-type JuniorinnenAge = 'U15' | 'U17'
-type HerrenAge = 'HERREN' | 'UE32' | 'UE40' | 'UE50' | 'UE60'
-type DamenAge = 'DAMEN'
-type FreizeitAge = 'FREIZEITLIGA'
-type SubAge = JuniorenAge | JuniorinnenAge | HerrenAge | DamenAge | FreizeitAge
-
-const AGE_CATEGORY_LABEL: Record<AgeCategory, string> = {
-  JUNIOREN: 'Junioren',
-  JUNIORINNEN: 'Juniorinnen',
-  HERREN: 'Herren',
-  DAMEN: 'Damen',
-  FREIZEITLIGA: 'Freizeitliga',
-}
-
-const JUNIOREN_AGES: JuniorenAge[] = ['U6','U7','U8','U9','U10','U11','U12','U13','U14','U15','U16','U17','U18','U19']
-const JUNIORINNEN_AGES: JuniorinnenAge[] = ['U15', 'U17']
-const HERREN_AGES: HerrenAge[] = ['HERREN', 'UE32', 'UE40', 'UE50', 'UE60']
-const DAMEN_AGES: DamenAge[] = ['DAMEN']
-const FREIZEIT_AGES: FreizeitAge[] = ['FREIZEITLIGA']
-
-const SUB_AGE_LABEL: Record<string, string> = {
-  HERREN: 'Herren',
-  UE32: 'Ü32',
-  UE40: 'Ü40',
-  UE50: 'Ü50',
-  UE60: 'Ü60',
-  DAMEN: 'Damen',
-  FREIZEITLIGA: 'Freizeitliga',
-}
-
-const AGE_CATEGORIES: AgeCategory[] = ['JUNIOREN', 'JUNIORINNEN', 'HERREN', 'DAMEN', 'FREIZEITLIGA']
-
 export default function RegisterChooseTeam() {
   const router = useRouter()
   const sp = useSearchParams()
@@ -78,14 +51,7 @@ export default function RegisterChooseTeam() {
   
   // Sub-Ages basierend auf gewählter Category
   const availableSubAges = (): SubAge[] => {
-    switch (ageCategory) {
-      case 'JUNIOREN': return JUNIOREN_AGES
-      case 'JUNIORINNEN': return JUNIORINNEN_AGES
-      case 'HERREN': return HERREN_AGES
-      case 'DAMEN': return DAMEN_AGES
-      case 'FREIZEITLIGA': return FREIZEIT_AGES
-      default: return []
-    }
+    return getSubAgesByCategory(ageCategory)
   }
   
   // Wenn sich die Category ändert, setze die erste verfügbare Sub-Age

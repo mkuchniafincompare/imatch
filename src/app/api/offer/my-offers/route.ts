@@ -2,22 +2,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
-
-const STRENGTH_LABEL: Record<string, string> = {
-  SEHR_SCHWACH: 'sehr schwach',
-  SCHWACH: 'schwach',
-  NORMAL: 'normal',
-  STARK: 'stark',
-  SEHR_STARK: 'sehr stark',
-  GRUPPE: 'Gruppe',
-  KREISKLASSE: 'Kreisklasse',
-  KREISLIGA: 'Kreisliga',
-  BEZIRKSOBERLIGA: 'Bezirksoberliga',
-  FOERDERLIGA: 'Förderliga',
-  NLZ_LIGA: 'NLZ-Liga',
-  BAYERNLIGA: 'Bayernliga',
-  REGIONALLIGA: 'Regionalliga',
-}
+import { STRENGTH_LABEL } from '@/config/ageStrength'
 
 export async function GET() {
   try {

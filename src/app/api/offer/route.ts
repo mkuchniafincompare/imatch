@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { geocode } from '@/lib/geocode'
 import type { Prisma } from '@prisma/client'
+import { STRENGTH_LABEL, getStrengthOrder } from '@/config/ageStrength'
 
 // Session aus Cookie lesen (mm_session = "uid:<userId>")
 function getCookie(req: Request, name: string): string | null {
@@ -39,23 +40,6 @@ function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number) {
     Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
   return R * c
-}
-
-/** Menschliche Labels für Spielstärke */
-const STRENGTH_LABEL: Record<string, string> = {
-  SEHR_SCHWACH: 'sehr schwach',
-  SCHWACH: 'schwach',
-  NORMAL: 'normal',
-  STARK: 'stark',
-  SEHR_STARK: 'sehr stark',
-  GRUPPE: 'Gruppe',
-  KREISKLASSE: 'Kreisklasse',
-  KREISLIGA: 'Kreisliga',
-  BEZIRKSOBERLIGA: 'Bezirksoberliga',
-  FOERDERLIGA: 'Förderliga',
-  NLZ_LIGA: 'NLZ-Liga',
-  BAYERNLIGA: 'Bayernliga',
-  REGIONALLIGA: 'Regionalliga',
 }
 
 /** ===== GET: mit Filtern + Aufbereitung für MatchCard =====

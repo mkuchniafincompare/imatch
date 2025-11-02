@@ -3,6 +3,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import BackgroundImage from '@/components/BackgroundImage'
+import {
+  type Strength,
+  STRENGTH_LABEL,
+  getAvailableStrengths
+} from '@/config/ageStrength'
 
 type Team = {
   id: string
@@ -17,10 +22,6 @@ type Age = typeof ALL_AGES[number]
 
 type HomeAway = 'HOME' | 'AWAY' | 'FLEX'
 type FieldType = 'FIELD' | 'TURF' | 'HALL'
-type Strength =
-  | 'SEHR_SCHWACH' | 'SCHWACH' | 'NORMAL' | 'STARK' | 'SEHR_STARK'
-  | 'GRUPPE' | 'KREISKLASSE' | 'KREISLIGA' | 'BEZIRKSOBERLIGA' | 'FOERDERLIGA' | 'NLZ_LIGA'
-  | 'BAYERNLIGA' | 'REGIONALLIGA'
 type PlayForm = 'FUNINO' | 'FUSSBALL_4' | 'FUSSBALL_5' | 'FUSSBALL_7' | 'NEUN_GEGEN_NEUN' | 'ELF_GEGEN_ELF'
 
 const FIELD_TYPE_LABEL: Record<FieldType, string> = { FIELD: 'Rasen', TURF: 'Kunstrasen', HALL: 'Halle' }
@@ -35,37 +36,6 @@ const PLAYFORM_LABEL: Record<PlayForm, string> = {
 const PLAYFORM_OPTIONS: PlayForm[] = [
   'FUNINO', 'FUSSBALL_4', 'FUSSBALL_5', 'FUSSBALL_7', 'NEUN_GEGEN_NEUN', 'ELF_GEGEN_ELF',
 ]
-
-const STRENGTH_LABEL: Record<Strength, string> = {
-  SEHR_SCHWACH: 'sehr schwach',
-  SCHWACH: 'schwach',
-  NORMAL: 'normal',
-  STARK: 'stark',
-  SEHR_STARK: 'sehr stark',
-  GRUPPE: 'Gruppe',
-  KREISKLASSE: 'Kreisklasse',
-  KREISLIGA: 'Kreisliga',
-  BEZIRKSOBERLIGA: 'Bezirksoberliga',
-  FOERDERLIGA: 'Förderliga',
-  NLZ_LIGA: 'NLZ-Liga',
-  BAYERNLIGA: 'Bayernliga',
-  REGIONALLIGA: 'Regionalliga',
-}
-const STRENGTH_U6_U11: Strength[] = ['SEHR_SCHWACH','SCHWACH','NORMAL','STARK','SEHR_STARK']
-const STRENGTH_U12_U13: Strength[] = ['GRUPPE','KREISKLASSE','KREISLIGA','BEZIRKSOBERLIGA','FOERDERLIGA','NLZ_LIGA']
-const STRENGTH_U14_UP: Strength[] = [...STRENGTH_U12_U13, 'BAYERNLIGA','REGIONALLIGA']
-
-function minAgeNumeric(ages: Age[]) {
-  if (!ages.length) return 19
-  return Math.min(...ages.map(a => Number(a.slice(1))))
-}
-function mergedStrengthOptions(selectedAges: Age[]): Strength[] {
-  if (!selectedAges.length) return STRENGTH_U6_U11
-  const minAge = minAgeNumeric(selectedAges)
-  if (minAge <= 11) return STRENGTH_U6_U11
-  if (minAge <= 13) return STRENGTH_U12_U13
-  return STRENGTH_U14_UP
-}
 
 function cls(...xs: (string | false | undefined)[]) { return xs.filter(Boolean).join(' ') }
 
@@ -121,7 +91,9 @@ export default function EditOfferPage() {
     })
   }, [offerId])
 
-  const strengthOptions = useMemo(() => mergedStrengthOptions(selectedAges), [selectedAges])
+  const strengthOptions = useMemo(() => {
+    return getAvailableStrengths('JUNIOREN', selectedAges as any)
+  }, [selectedAges])
 
   function toggleAge(age: Age) {
     setSelectedAges(prev => prev.includes(age) ? prev.filter(a => a !== age) : [...prev, age])

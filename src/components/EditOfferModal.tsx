@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { STRENGTH_LABEL, getStrengthOrder } from '@/config/ageStrength'
 
 type Props = {
   open: boolean
@@ -32,21 +33,10 @@ export type EditOfferData = {
   notes?: string
 }
 
-const STRENGTH_OPTIONS = [
-  { value: 'SEHR_SCHWACH', label: 'Sehr schwach' },
-  { value: 'SCHWACH', label: 'Schwach' },
-  { value: 'NORMAL', label: 'Normal' },
-  { value: 'STARK', label: 'Stark' },
-  { value: 'SEHR_STARK', label: 'Sehr stark' },
-  { value: 'GRUPPE', label: 'Gruppe' },
-  { value: 'KREISKLASSE', label: 'Kreisklasse' },
-  { value: 'KREISLIGA', label: 'Kreisliga' },
-  { value: 'BEZIRKSOBERLIGA', label: 'Bezirksoberliga' },
-  { value: 'FOERDERLIGA', label: 'Förderliga' },
-  { value: 'NLZ_LIGA', label: 'NLZ Liga' },
-  { value: 'BAYERNLIGA', label: 'Bayernliga' },
-  { value: 'REGIONALLIGA', label: 'Regionalliga' },
-]
+const STRENGTH_OPTIONS = getStrengthOrder().map(s => ({
+  value: s,
+  label: STRENGTH_LABEL[s]
+}))
 
 const PLAYFORM_OPTIONS = [
   { value: 'FUNINO', label: 'Funino' },
